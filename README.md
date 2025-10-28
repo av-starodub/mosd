@@ -1,3 +1,5 @@
+[![Build](https://github.com/av-starodub/mosd/actions/workflows/build.yml/badge.svg)](https://github.com/av-starodub/mosd/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/av-starodub/mosd)](https://github.com/av-starodub/mosd/blob/master/LICENSE)
 # MOSD — Manufacturing Order Scheduling & Dispatching
 
 ### Система планирования и диспетчеризации производственных заказов.
