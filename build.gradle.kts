@@ -1,3 +1,4 @@
+val buildDir by extra("build")
 val springdocVersion by extra("2.8.13")
 val commonsLang3Version by extra("3.19.0") // CVE-2025-48924 vulnerability in versions < 3.18.0 https://www.mend.io/vulnerability-database/CVE-2025-48924?utm_source=JetBrains
 val checkstyleVersion by extra("12.1.1")
@@ -7,6 +8,8 @@ plugins {
     checkstyle
     id("org.springframework.boot") version "3.5.7"
     id("io.spring.dependency-management") version "1.1.7"
+    id("io.freefair.lombok") version "9.0.0"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
 }
 
 group = "io.github.avstarodub"
@@ -32,9 +35,14 @@ dependencyManagement {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mongodb")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -44,6 +52,13 @@ checkstyle {
     isIgnoreFailures = false
     maxWarnings = 0
 }
+
+openApi {
+    outputDir.set(file("$buildDir/openapi"))
+    outputFileName.set("openapi.json")
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+}
+
 
 tasks.withType<Test> {
     useJUnitPlatform()
