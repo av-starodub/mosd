@@ -5,7 +5,7 @@ val checkstyleVersion by extra("12.1.1")
 plugins {
     java
     checkstyle
-    id("org.springframework.boot") version "3.5.7"
+    id("org.springframework.boot") version "4.0.0"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
