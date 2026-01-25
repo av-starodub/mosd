@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: mosd
+
+  data:
+    mongodb:
+      database: mosd
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

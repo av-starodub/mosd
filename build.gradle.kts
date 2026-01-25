@@ -1,20 +1,44 @@
-val springdocVersion by extra("2.8.13")
-val commonsLang3Version by extra("3.19.0") // CVE-2025-48924 vulnerability in versions < 3.18.0 https://www.mend.io/vulnerability-database/CVE-2025-48924?utm_source=JetBrains
-val checkstyleVersion by extra("12.1.1")
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+// Versions from gradle.properties
+val springdocVersion: String by project
+val checkstyleVersion: String by project
+val testcontainersVersion: String by project
+
+// CVE-2025-48924 vulnerability in versions < 3.18.0
+// https://www.mend.io/vulnerability-database/CVE-2025-48924
+val commonsLang3Version: String by project
+
+val mongoTag: String = providers
+    .systemProperty("mongo.tag")
+    .orElse(providers.gradleProperty("mongo.tag"))
+    .orElse(providers.environmentVariable("MONGO_TAG"))
+    .get()
 
 plugins {
     java
     checkstyle
+    jacoco
     id("org.springframework.boot") version "3.5.7"
     id("io.spring.dependency-management") version "1.1.7"
+    id("io.freefair.lombok") version "9.0.0"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
+    id("com.diffplug.spotless") version "8.0.0"
+    id("org.gradle.test-retry") version "1.6.4"
 }
 
-group = "io.github.avstarodub"
-version = "0.0.1-SNAPSHOT"
+val javaVersion: String by project
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.compilerArgs.addAll(listOf("-Xlint:deprecation"))
 }
 
 repositories {
@@ -24,6 +48,7 @@ repositories {
 dependencyManagement {
     imports {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        mavenBom("org.testcontainers:testcontainers-bom:$testcontainersVersion")
     }
     dependencies {
         dependency("org.apache.commons:commons-lang3:$commonsLang3Version")
@@ -32,10 +57,20 @@ dependencyManagement {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mongodb")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+springBoot {
+    buildInfo()
 }
 
 checkstyle {
@@ -45,9 +80,42 @@ checkstyle {
     maxWarnings = 0
 }
 
-tasks.withType<Test> {
+spotless {
+    java {
+        target("src/**/*.java")
+        palantirJavaFormat()
+        endWithNewline()
+        trimTrailingWhitespace()
+    }
+}
+
+openApi {
+    outputDir.set(layout.buildDirectory.dir("openapi").get())
+    outputFileName.set("openapi.json")
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs")
+}
+
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    testLogging.showExceptions = true
+    if (System.getenv("DOCKER_HOST").isNullOrBlank()) {
+        environment("DOCKER_HOST", "unix:///var/run/docker.sock")
+    }
+    systemProperty("mongo.tag", mongoTag)
+    finalizedBy(tasks.jacocoTestReport)
+    retry {
+        maxRetries.set(1)
+        failOnPassedAfterRetry.set(false)
+    }
+    testLogging {
+        events(
+            TestLogEvent.FAILED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.PASSED
+        )
+        showExceptions = true
+        exceptionFormat = TestExceptionFormat.FULL
+        showStandardStreams = false
+    }
     reports {
         junitXml.required.set(true)
         html.required.set(true)
@@ -70,4 +138,28 @@ tasks.register("verify") {
 
 tasks.named("check") {
     dependsOn("checkstyleMain", "checkstyleTest")
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.register<Exec>("composeUp") {
+    group = "compose"; description = "Start local Mongo RS"
+    commandLine("docker", "compose", "up", "-d", "--wait")
+    onlyIf { System.getenv("CI") != "true" && !project.hasProperty("skipCompose") }
+}
+tasks.register<Exec>("composeDown") {
+    group = "compose"; description = "Stop local Mongo RS and remove volumes"
+    commandLine("docker", "compose", "down", "-v")
+    onlyIf { System.getenv("CI") != "true" && !project.hasProperty("skipCompose") }
+}
+
+tasks.register("bootDev") {
+    group = "application"; description = "composeUp + bootRun (dev)"
+    dependsOn("composeUp", "bootRun")
 }

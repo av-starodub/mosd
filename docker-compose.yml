@@ -1,0 +1,27 @@
+services:
+  mongodb:
+    image: mongo:${MONGO_TAG:-8.0}
+    container_name: mosd-mongodb
+    expose:
+      - "27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: >
+        mongosh --quiet --eval "
+          try {
+            rs.status().ok === 1
+          } catch(e) {
+            rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]});
+            false;
+          }
+        "
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mongo-data:
+    name: mosd-mongo-data
