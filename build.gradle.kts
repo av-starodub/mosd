@@ -1,15 +1,20 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-val springdocVersion by extra("2.8.13")
-val commonsLang3Version by extra("3.19.0") // CVE-2025-48924 vulnerability in versions < 3.18.0 https://www.mend.io/vulnerability-database/CVE-2025-48924?utm_source=JetBrains
-val checkstyleVersion by extra("12.1.1")
-val testcontainersVersion by extra("2.0.3")
-val mongoTag = providers
+// Versions from gradle.properties
+val springdocVersion: String by project
+val checkstyleVersion: String by project
+val testcontainersVersion: String by project
+
+// CVE-2025-48924 vulnerability in versions < 3.18.0
+// https://www.mend.io/vulnerability-database/CVE-2025-48924
+val commonsLang3Version: String by project
+
+val mongoTag: String = providers
     .systemProperty("mongo.tag")
     .orElse(providers.gradleProperty("mongo.tag"))
     .orElse(providers.environmentVariable("MONGO_TAG"))
-    .getOrElse("8.0")
+    .get()
 
 plugins {
     java
@@ -23,12 +28,11 @@ plugins {
     id("org.gradle.test-retry") version "1.6.4"
 }
 
-group = "io.github.avstarodub"
-version = "0.0.1-SNAPSHOT"
+val javaVersion: String by project
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(javaVersion.toInt()))
     }
 }
 
@@ -55,6 +59,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
