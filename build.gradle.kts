@@ -4,6 +4,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 val springdocVersion by extra("2.8.13")
 val commonsLang3Version by extra("3.19.0") // CVE-2025-48924 vulnerability in versions < 3.18.0 https://www.mend.io/vulnerability-database/CVE-2025-48924?utm_source=JetBrains
 val checkstyleVersion by extra("12.1.1")
+val testcontainersVersion by extra("2.0.3")
 val mongoTag = providers
     .systemProperty("mongo.tag")
     .orElse(providers.gradleProperty("mongo.tag"))
@@ -43,6 +44,7 @@ repositories {
 dependencyManagement {
     imports {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        mavenBom("org.testcontainers:testcontainers-bom:$testcontainersVersion")
     }
     dependencies {
         dependency("org.apache.commons:commons-lang3:$commonsLang3Version")
@@ -90,6 +92,9 @@ openApi {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    if (System.getenv("DOCKER_HOST").isNullOrBlank()) {
+        environment("DOCKER_HOST", "unix:///var/run/docker.sock")
+    }
     systemProperty("mongo.tag", mongoTag)
     finalizedBy(tasks.jacocoTestReport)
     retry {
