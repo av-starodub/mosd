@@ -8,7 +8,7 @@ val mongoTag = providers
     .systemProperty("mongo.tag")
     .orElse(providers.gradleProperty("mongo.tag"))
     .orElse(providers.environmentVariable("MONGO_TAG"))
-    .getOrElse("7.0")
+    .getOrElse("8.0")
 
 plugins {
     java

@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/mosd?replicaSet=rs0
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    io.github.avstarodub.mosd: DEBUG
+    org.springframework.data.mongodb: DEBUG
