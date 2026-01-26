@@ -39,12 +39,9 @@ public abstract class AbstractTestcontainersConfiguration {
         try {
             Startables.deepStart(MONGO).join();
         } catch (RuntimeException e) {
-            throw new IllegalStateException(
-                    """
+            throw new IllegalStateException("""
                             Failed to start MongoDB via Testcontainers.
-                            Caused by:"""
-                            + rootMessage(e),
-                    e);
+                            Caused by:""" + rootMessage(e), e);
         }
 
         registry.add("spring.data.mongodb.uri", MONGO::getReplicaSetUrl);
