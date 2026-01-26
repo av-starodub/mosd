@@ -22,7 +22,7 @@ plugins {
     jacoco
     id("org.springframework.boot") version "3.5.7"
     id("io.spring.dependency-management") version "1.1.7"
-    id("io.freefair.lombok") version "9.0.0"
+    id("io.freefair.lombok") version "9.2.0"
     id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
     id("com.diffplug.spotless") version "8.0.0"
     id("org.gradle.test-retry") version "1.6.4"
