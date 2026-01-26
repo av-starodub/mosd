@@ -2,6 +2,7 @@ spring:
   data:
     mongodb:
       database: mosd_test
+      auto-index-creation: true
 
 springdoc:
   api-docs:

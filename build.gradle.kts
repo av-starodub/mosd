@@ -6,6 +6,8 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 val springdocVersion: String by project
 val checkstyleVersion: String by project
 val testcontainersVersion: String by project
+val instancioVersion: String by project
+val datafakerVersion: String by project
 
 // CVE-2025-48924 vulnerability in versions < 3.18.0
 // https://www.mend.io/vulnerability-database/CVE-2025-48924
@@ -64,6 +66,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.instancio:instancio-junit:$instancioVersion")
+    testImplementation("net.datafaker:datafaker:$datafakerVersion")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mongodb")

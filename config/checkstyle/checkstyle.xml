@@ -93,7 +93,7 @@
         <!-- Запрещает использование определенных типов -->
         <module name="IllegalType">
             <property name="illegalClassNames"
-                      value="HashMap, HashSet, LinkedHashMap, LinkedHashSet, TreeMap, TreeSet, Hashtable, ArrayList, LinkedList, Vector, java.util.HashMap, java.util.HashSet, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeMap, java.util.TreeSet, java.util.Hashtable, java.util.ArrayList, java.util.LinkedList, java.util.Vector"/>
+                      value="Hashtable, Vector, java.util.Hashtable, java.util.Vector"/>
         </module>
 
         <!-- Проверяет, что в одной строке объявляется не более одной переменной -->
