@@ -2,8 +2,8 @@ services:
   mongodb:
     image: mongo:${MONGO_TAG:-8.0}
     container_name: mosd-mongodb
-    expose:
-      - "27017"
+    ports:
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo-data:/data/db
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]

@@ -12,3 +12,9 @@ logging:
   level:
     io.github.avstarodub.mosd: DEBUG
     org.springframework.data.mongodb: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

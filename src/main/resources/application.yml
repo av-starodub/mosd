@@ -10,10 +10,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics
+        include: health, info
+  endpoint:
+    health:
+      show-details: never
 
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: false
   swagger-ui:
     path: /swagger-ui.html
+    enabled: false

@@ -36,8 +36,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationErrors(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
         var fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> new ErrorResponse.FieldError(
-                        error.getField(), error.getDefaultMessage(), error.getRejectedValue()))
+                .map(error -> new ErrorResponse.FieldError(error.getField(), error.getDefaultMessage()))
                 .toList();
         LOG.warn("Validation failed: {} errors", fieldErrors.size());
         var response = new ErrorResponse(
@@ -53,8 +52,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolation(
             ConstraintViolationException ex, HttpServletRequest request) {
         var fieldErrors = ex.getConstraintViolations().stream()
-                .map(violation -> new ErrorResponse.FieldError(
-                        violation.getPropertyPath().toString(), violation.getMessage(), violation.getInvalidValue()))
+                .map(violation ->
+                        new ErrorResponse.FieldError(violation.getPropertyPath().toString(), violation.getMessage()))
                 .toList();
         LOG.warn("Constraint violation: {} errors", fieldErrors.size());
         var response = new ErrorResponse(

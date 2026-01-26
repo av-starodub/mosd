@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 // Versions from gradle.properties
 val springdocVersion: String by project
@@ -101,7 +102,6 @@ tasks.withType<Test>().configureEach {
         environment("DOCKER_HOST", "unix:///var/run/docker.sock")
     }
     systemProperty("mongo.tag", mongoTag)
-    finalizedBy(tasks.jacocoTestReport)
     retry {
         maxRetries.set(1)
         failOnPassedAfterRetry.set(false)
@@ -122,6 +122,22 @@ tasks.withType<Test>().configureEach {
     }
 }
 
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("integration")
+    }
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.register<Test>("integrationTest") {
+    group = "verification"
+    description = "Runs integration tests (JUnit @Tag(\"integration\"))"
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter(tasks.named("test"))
+}
+
 tasks.named<Checkstyle>("checkstyleMain") {
     source = fileTree("src/main/java")
 }
@@ -133,7 +149,7 @@ tasks.named<Checkstyle>("checkstyleTest") {
 tasks.register("verify") {
     group = "verification"
     description = "Runs all verification tasks"
-    dependsOn("check")
+    dependsOn("check", "integrationTest")
 }
 
 tasks.named("check") {
@@ -159,7 +175,10 @@ tasks.register<Exec>("composeDown") {
     onlyIf { System.getenv("CI") != "true" && !project.hasProperty("skipCompose") }
 }
 
-tasks.register("bootDev") {
+tasks.register<BootRun>("bootDev") {
     group = "application"; description = "composeUp + bootRun (dev)"
-    dependsOn("composeUp", "bootRun")
+    dependsOn("composeUp")
+    systemProperty("spring.profiles.active", "dev")
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("io.github.avstarodub.mosd.MosdApplication")
 }

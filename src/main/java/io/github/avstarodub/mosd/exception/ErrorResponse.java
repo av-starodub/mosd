@@ -14,5 +14,5 @@ public record ErrorResponse(
         this(Instant.now(), status, error, message, path, fieldErrors);
     }
 
-    public record FieldError(String field, String message, Object rejectedValue) {}
+    public record FieldError(String field, String message) {}
 }

@@ -18,9 +18,9 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class AbstractTestcontainersConfiguration {
 
-    private static final String MONGO_IMAGE = "mongo:8.0";
+    private static final DockerImageName MONGO_IMAGE = DockerImageName.parse("mongo:" + mongoTag());
 
-    protected static final MongoDBContainer MONGO = new MongoDBContainer(DockerImageName.parse(MONGO_IMAGE))
+    protected static final MongoDBContainer MONGO = new MongoDBContainer(MONGO_IMAGE)
             .withStartupAttempts(2)
             .withStartupTimeout(Duration.ofMinutes(2))
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("testcontainers.mongo")));
@@ -54,5 +54,11 @@ public abstract class AbstractTestcontainersConfiguration {
         }
         var msg = cur.getMessage();
         return (msg == null || msg.isBlank()) ? cur.getClass().getName() : msg;
+    }
+
+    private static String mongoTag() {
+        return Optional.ofNullable(System.getProperty("mongo.tag"))
+                .or(() -> Optional.ofNullable(System.getenv("MONGO_TAG")))
+                .orElse("8.0");
     }
 }

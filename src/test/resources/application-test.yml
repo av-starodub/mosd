@@ -1,0 +1,15 @@
+spring:
+  data:
+    mongodb:
+      database: mosd_test
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
