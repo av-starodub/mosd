@@ -1,0 +1,32 @@
+{
+  "processKey": "PROC-DUP-RATE",
+  "type": "CUT",
+  "description": "Duplicate rate option",
+  "volumeUnit": "pcs",
+  "batchVolume": 50,
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "name": "op-1",
+      "executionTime": 5
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    },
+    {
+      "key": "STD",
+      "title": "Alt",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

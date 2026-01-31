@@ -2,17 +2,15 @@ package io.github.avstarodub.mosd.space.testdata;
 
 import static org.instancio.Select.field;
 
-import io.github.avstarodub.mosd.space.api.dto.OperationRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
-import io.github.avstarodub.mosd.space.api.dto.RateRequest;
-import io.github.avstarodub.mosd.space.infra.mongo.OperationDocument;
-import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocument;
-import io.github.avstarodub.mosd.space.infra.mongo.RateDocument;
+import io.github.avstarodub.mosd.space.domain.HandoffMode;
+import io.github.avstarodub.mosd.space.domain.Operation;
+import io.github.avstarodub.mosd.space.domain.Process;
+import io.github.avstarodub.mosd.space.domain.ProcessType;
+import io.github.avstarodub.mosd.space.domain.Rate;
+import io.github.avstarodub.mosd.space.domain.RateOption;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import lombok.Getter;
-import net.datafaker.Faker;
 import org.instancio.Instancio;
 import org.instancio.Model;
 import org.springframework.stereotype.Component;
@@ -21,92 +19,74 @@ import org.springframework.stereotype.Component;
 @Component
 public class ModelGenerator {
 
-    private final String processType = "CUT";
+    private Model<Rate> rateModel;
 
-    private final String processTypeTitle = "Cutting";
+    private Model<RateOption> rateOptionModel;
 
-    private final String processTypeB = "WELD";
+    private Model<Operation> operationModel;
 
-    private final String processTypeTitleB = "Welding";
+    private Model<ProcessType> processTypeModel;
 
-    private final String processKeyA = "CUT-01";
-
-    private final String processKeyB = "CUT-02";
-
-    private final String processDescriptionA = "Process A";
-
-    private final String processDescriptionB = "Process B";
-
-    private final String operation1 = "op-1";
-
-    private final String operation2 = "op-2";
-
-    private final String operationX = "op-x";
-
-    private final String unit = "unit";
-
-    private final RateRequest rateDefault = new RateRequest(3, 2, unit);
-
-    private final RateRequest rateUpdate = new RateRequest(2, 1, unit);
-
-    private final RateRequest rateOneToOne = new RateRequest(1, 1, unit);
-
-    private final RateDocument rateDocumentDefault = new RateDocument(3, 2, unit);
-
-    private final Faker faker = new Faker();
-
-    private Model<ProcessNewVersionRequest> processNewVersionRequestModel;
-
-    private Model<ProcessCreateRequest> processCreateRequestModel;
-
-    private Model<ProcessDocument> processDocumentModel;
+    private Model<Process> processModel;
 
     @PostConstruct
     private void init() {
-        processNewVersionRequestModel = buildNewVersionRequestModel();
-        processCreateRequestModel = buildCreateRequestModel();
-        processDocumentModel = buildProcessDocumentModel();
+        rateModel = buildRateModel();
+        rateOptionModel = buildRateOptionModel();
+        operationModel = buildOperationModel();
+        processTypeModel = buildProcessTypeModel();
+        processModel = buildProcessModel();
     }
 
-    private Model<ProcessNewVersionRequest> buildNewVersionRequestModel() {
-        return Instancio.of(ProcessNewVersionRequest.class)
-                .set(field(ProcessNewVersionRequest::type), processType)
-                .supply(field(ProcessNewVersionRequest::description), () -> faker.commerce()
-                        .productName())
-                .set(
-                        field(ProcessNewVersionRequest::operations),
-                        List.of(new OperationRequest(operation1, 5), new OperationRequest(operation2, 10)))
-                .set(field(ProcessNewVersionRequest::rate), rateDefault)
+    private Model<Rate> buildRateModel() {
+        return Instancio.of(Rate.class)
+                .set(field(Rate::units), 3)
+                .set(field(Rate::minutes), 2)
                 .toModel();
     }
 
-    private Model<ProcessCreateRequest> buildCreateRequestModel() {
-        return Instancio.of(ProcessCreateRequest.class)
-                .set(field(ProcessCreateRequest::processKey), processKeyA)
-                .set(field(ProcessCreateRequest::type), processType)
-                .supply(field(ProcessCreateRequest::description), () -> faker.commerce()
-                        .productName())
-                .set(
-                        field(ProcessCreateRequest::operations),
-                        List.of(new OperationRequest(operation1, 5), new OperationRequest(operation2, 10)))
-                .set(field(ProcessCreateRequest::rate), rateDefault)
+    private Model<RateOption> buildRateOptionModel() {
+        var rate = new Rate(3, 2);
+        return Instancio.of(RateOption.class)
+                .set(field(RateOption::key), "STD")
+                .set(field(RateOption::title), "Standard")
+                .set(field(RateOption::rate), rate)
                 .toModel();
     }
 
-    private Model<ProcessDocument> buildProcessDocumentModel() {
-        return Instancio.of(ProcessDocument.class)
-                .ignore(field(ProcessDocument::id))
-                .ignore(field(ProcessDocument::createdAt))
-                .ignore(field(ProcessDocument::updatedAt))
-                .set(field(ProcessDocument::processKey), processKeyA)
-                .set(field(ProcessDocument::version), 1)
-                .set(field(ProcessDocument::type), processType)
-                .supply(field(ProcessDocument::description), () -> faker.commerce()
-                        .productName())
-                .set(
-                        field(ProcessDocument::operations),
-                        List.of(new OperationDocument(operation1, 5), new OperationDocument(operation2, 10)))
-                .set(field(ProcessDocument::rate), rateDocumentDefault)
+    private Model<Operation> buildOperationModel() {
+        return Instancio.of(Operation.class)
+                .set(field(Operation::name), "op-1")
+                .set(field(Operation::executionTime), 5L)
+                .toModel();
+    }
+
+    private Model<ProcessType> buildProcessTypeModel() {
+        return Instancio.of(ProcessType.class)
+                .ignore(field(ProcessType::id))
+                .ignore(field(ProcessType::createdAt))
+                .ignore(field(ProcessType::updatedAt))
+                .set(field(ProcessType::type), "CUT")
+                .set(field(ProcessType::title), "Cutting")
+                .toModel();
+    }
+
+    private Model<Process> buildProcessModel() {
+        var operations = List.of(new Operation("op-1", 5L), new Operation("op-2", 10L));
+        var rateOptions = List.of(new RateOption("STD", "Standard", new Rate(3, 2)));
+        return Instancio.of(Process.class)
+                .ignore(field(Process::id))
+                .ignore(field(Process::createdAt))
+                .ignore(field(Process::updatedAt))
+                .set(field(Process::processKey), "PROC-1")
+                .set(field(Process::version), 1)
+                .set(field(Process::type), "CUT")
+                .set(field(Process::description), "Primary cutting")
+                .set(field(Process::volumeUnit), "pcs")
+                .set(field(Process::batchVolume), 50)
+                .set(field(Process::handoffMode), HandoffMode.BATCHED)
+                .set(field(Process::operations), operations)
+                .set(field(Process::rateOptions), rateOptions)
                 .toModel();
     }
 }

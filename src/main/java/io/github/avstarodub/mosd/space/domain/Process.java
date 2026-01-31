@@ -9,7 +9,10 @@ public record Process(
         int version,
         String type,
         String description,
+        String volumeUnit,
+        Integer batchVolume,
+        HandoffMode handoffMode,
         List<Operation> operations,
-        Rate rate,
+        List<RateOption> rateOptions,
         Instant createdAt,
         Instant updatedAt) {}

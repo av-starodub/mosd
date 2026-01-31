@@ -1,5 +1,6 @@
 package io.github.avstarodub.mosd.space.api.dto;
 
+import io.github.avstarodub.mosd.space.domain.HandoffMode;
 import java.time.Instant;
 import java.util.List;
 
@@ -9,7 +10,10 @@ public record ProcessResponse(
         int version,
         String type,
         String description,
+        String volumeUnit,
+        Integer batchVolume,
+        HandoffMode handoffMode,
         List<OperationResponse> operations,
-        RateResponse rate,
+        List<RateOptionResponse> rateOptions,
         Instant createdAt,
         Instant updatedAt) {}

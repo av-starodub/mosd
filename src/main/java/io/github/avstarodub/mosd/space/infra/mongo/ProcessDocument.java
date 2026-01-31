@@ -1,5 +1,6 @@
 package io.github.avstarodub.mosd.space.infra.mongo;
 
+import io.github.avstarodub.mosd.space.domain.HandoffMode;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.annotation.CreatedDate;
@@ -19,7 +20,10 @@ public record ProcessDocument(
         int version,
         String type,
         String description,
+        String volumeUnit,
+        Integer batchVolume,
+        HandoffMode handoffMode,
         List<OperationDocument> operations,
-        RateDocument rate,
+        List<RateOptionDocument> rateOptions,
         @CreatedDate Instant createdAt,
         @LastModifiedDate Instant updatedAt) {}

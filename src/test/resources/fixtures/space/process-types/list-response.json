@@ -1,0 +1,16 @@
+[
+  {
+    "id": null,
+    "type": "CUT",
+    "title": "Cutting",
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": null,
+    "type": "WELD",
+    "title": "Welding",
+    "createdAt": null,
+    "updatedAt": null
+  }
+]

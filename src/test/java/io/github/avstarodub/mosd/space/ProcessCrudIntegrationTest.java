@@ -1,29 +1,24 @@
 package io.github.avstarodub.mosd.space;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.instancio.Select.field;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
-import io.github.avstarodub.mosd.space.api.dto.OperationRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
-import io.github.avstarodub.mosd.space.api.dto.RateResponse;
+import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
-import io.github.avstarodub.mosd.space.infra.mongo.RateDocument;
-import io.github.avstarodub.mosd.space.testdata.ModelGenerator;
+import io.github.avstarodub.mosd.util.JsonHelper;
+import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
-import org.instancio.Instancio;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,232 +44,196 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
     @Autowired
     private ProcessTypeDocumentRepository processTypeRepository;
 
-    @Autowired
-    private ModelGenerator modelGenerator;
-
     @BeforeEach
     void setUp() {
         repository.deleteAll();
         processTypeRepository.deleteAll();
-        processTypeRepository.save(new ProcessTypeDocument(
-                null, modelGenerator.getProcessType(), modelGenerator.getProcessTypeTitle(), null, null));
+        saveProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST);
+        saveProcessType(JsonHelper.ProcessTypeFixtures.WELD_REQUEST);
     }
 
     @Test
     @DisplayName("Create process persists in repository")
     void createProcessPersists() throws Exception {
-        var created = createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
+        var expected =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
 
-        var stored = repository.findById(created.id()).orElseThrow();
+        var actual = createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
 
-        assertThat(stored)
-                .extracting(
-                        ProcessDocument::processKey,
-                        ProcessDocument::version,
-                        ProcessDocument::description,
-                        ProcessDocument::rate)
-                .containsExactly(
-                        modelGenerator.getProcessKeyA(),
-                        1,
-                        modelGenerator.getProcessDescriptionA(),
-                        modelGenerator.getRateDocumentDefault());
-        assertThat(stored.createdAt()).isNotNull();
-        assertThat(stored.updatedAt()).isNotNull();
+        ResultMatcher.assertResponse(actual, expected);
+        assertStoredProcess(expected, actual);
     }
 
     @Test
     @DisplayName("Get latest process by key returns stored data")
     void getLatestProcessByKey() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        var expected =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
 
-        var fetched = getProcess(modelGenerator.getProcessKeyA());
+        var actual = getProcess(expected.processKey());
 
-        assertThat(fetched)
-                .extracting(ProcessResponse::processKey, ProcessResponse::version, ProcessResponse::description)
-                .containsExactly(modelGenerator.getProcessKeyA(), 1, modelGenerator.getProcessDescriptionA());
+        ResultMatcher.assertResponse(actual, expected);
     }
 
     @Test
     @DisplayName("Create new process version persists changes")
     void createProcessVersionPersistsChanges() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
-        var update = updatedVersionRequest();
-        var updated = createVersion(modelGenerator.getProcessKeyA(), update);
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        var base =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+        var expected = JsonHelper.readFixture(
+                objectMapper, JsonHelper.ProcessFixtures.CREATE_VERSION_RESPONSE, ProcessResponse.class);
 
-        assertUpdatedVersionResponse(updated);
-        assertStoredLatestVersion(updated, new RateDocument(2, 1, modelGenerator.getUnit()));
+        var actual = createVersionFromFixture(base.processKey());
+
+        ResultMatcher.assertResponse(actual, expected);
+        assertStoredLatestVersion(expected);
     }
 
     @Test
     @DisplayName("Delete process removes it from storage")
     void deleteProcess() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        var expected =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
 
-        mockMvc.perform(delete("/api/v1/space/processes/{processKey}", modelGenerator.getProcessKeyA()))
-                .andExpect(status().isNoContent());
+        deleteProcess(expected.processKey());
 
-        mockMvc.perform(get("/api/v1/space/processes/{processKey}", modelGenerator.getProcessKeyA()))
-                .andExpect(status().isNotFound());
-        assertThat(repository.findTopByProcessKeyOrderByVersionDesc(modelGenerator.getProcessKeyA()))
+        assertProcessNotFound(expected.processKey());
+        Assertions.assertThat(repository.findTopByProcessKeyOrderByVersionDesc(expected.processKey()))
                 .isEmpty();
     }
 
     @Test
     @DisplayName("Reject duplicate process key")
     void uniqueProcessKey() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
 
-        mockMvc.perform(post("/api/v1/space/processes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleCreateRequest(
-                                modelGenerator.getProcessKeyA(),
-                                modelGenerator.getProcessDescriptionA(),
-                                modelGenerator.getProcessType()))))
-                .andExpect(status().isConflict());
+        postProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST).andExpect(status().isConflict());
     }
 
     @Test
     @DisplayName("Reject duplicate operation names within process")
     void uniqueOperationNames() throws Exception {
-        var invalid = Instancio.of(modelGenerator.getProcessCreateRequestModel())
-                .set(field(ProcessCreateRequest::processKey), modelGenerator.getProcessKeyA())
-                .set(field(ProcessCreateRequest::description), modelGenerator.getProcessDescriptionA())
-                .set(
-                        field(ProcessCreateRequest::operations),
-                        List.of(
-                                new OperationRequest(modelGenerator.getOperation1(), 5),
-                                new OperationRequest(modelGenerator.getOperation1(), 7)))
-                .set(field(ProcessCreateRequest::rate), modelGenerator.getRateOneToOne())
-                .create();
+        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_OPERATION).andExpect(status().isConflict());
+    }
 
-        mockMvc.perform(post("/api/v1/space/processes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalid)))
-                .andExpect(status().isConflict());
+    @Test
+    @DisplayName("Reject duplicate rate option keys within process")
+    void uniqueRateOptionKeys() throws Exception {
+        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION).andExpect(status().isConflict());
     }
 
     @Test
     @DisplayName("Reject blank operation name")
     void blankOperationName() throws Exception {
-        var invalid = Instancio.of(modelGenerator.getProcessCreateRequestModel())
-                .set(field(ProcessCreateRequest::processKey), modelGenerator.getProcessKeyA())
-                .set(field(ProcessCreateRequest::description), modelGenerator.getProcessDescriptionA())
-                .set(field(ProcessCreateRequest::operations), List.of(new OperationRequest(" ", 5)))
-                .set(field(ProcessCreateRequest::rate), modelGenerator.getRateOneToOne())
-                .create();
+        postProcess(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION).andExpect(status().isBadRequest());
+    }
 
-        mockMvc.perform(post("/api/v1/space/processes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalid)))
-                .andExpect(status().isBadRequest());
+    @Test
+    @DisplayName("Reject batched mode without batchVolume")
+    void batchedModeRequiresBatchVolume() throws Exception {
+        postProcess(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Reject batchVolume for full-only mode")
+    void fullOnlyModeRejectsBatchVolume() throws Exception {
+        postProcess(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME).andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("List all processes")
     void getAllProcesses() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
-        createProcess(modelGenerator.getProcessKeyB(), modelGenerator.getProcessDescriptionB());
-        createVersionForSetup(modelGenerator.getProcessKeyA());
+        seedProcessesWithVersion();
+        var expected = JsonHelper.readFixtureList(
+                objectMapper, JsonHelper.ProcessFixtures.LIST_RESPONSE, ProcessResponse[].class);
 
-        var result = mockMvc.perform(get("/api/v1/space/processes"))
-                .andExpect(status().isOk())
-                .andReturn();
+        var actual = getProcesses();
 
-        var processes = objectMapper.readValue(
-                result.getResponse().getContentAsString(), new TypeReference<List<ProcessResponse>>() {});
-
-        assertThat(processes).hasSize(2);
-        var processA = processes.stream()
-                .filter(process -> process.processKey().equals(modelGenerator.getProcessKeyA()))
-                .findFirst()
-                .orElseThrow();
-        assertThat(processA.version()).isEqualTo(2);
+        ResultMatcher.assertResponseListOrdered(actual, expected);
     }
 
     @Test
     @DisplayName("Filter latest processes by type")
     void getAllProcessesByType() throws Exception {
-        createProcessType(modelGenerator.getProcessTypeB(), modelGenerator.getProcessTypeTitleB());
-        createProcess(
-                modelGenerator.getProcessKeyA(),
-                modelGenerator.getProcessDescriptionA(),
-                modelGenerator.getProcessType());
-        createProcess(
-                modelGenerator.getProcessKeyB(),
-                modelGenerator.getProcessDescriptionB(),
-                modelGenerator.getProcessTypeB());
+        seedProcessesWithVersion();
+        var request =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+        var expected = JsonHelper.readFixtureList(
+                objectMapper, JsonHelper.ProcessFixtures.LIST_BY_TYPE_RESPONSE, ProcessResponse[].class);
 
-        var processes = getProcessesByType(modelGenerator.getProcessType());
-        assertThat(processes).hasSize(1);
-        assertThat(processes.getFirst().processKey()).isEqualTo(modelGenerator.getProcessKeyA());
+        var actual = getProcessesByType(request.type());
+
+        ResultMatcher.assertResponseListOrdered(actual, expected);
     }
 
     @Test
     @DisplayName("Sort and paginate latest processes")
     void sortAndPaginateProcesses() throws Exception {
-        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
-        createProcess(modelGenerator.getProcessKeyB(), modelGenerator.getProcessDescriptionB());
+        seedProcesses();
+        var expected = JsonHelper.readFixtureList(
+                objectMapper, JsonHelper.ProcessFixtures.LIST_PAGE_RESPONSE, ProcessResponse[].class);
 
-        var processes = getProcessesPage();
+        var actual = getProcessesPage();
 
-        assertThat(processes).hasSize(1);
-        assertThat(processes.getFirst().processKey()).isEqualTo(modelGenerator.getProcessKeyB());
+        ResultMatcher.assertResponseListOrdered(actual, expected);
     }
 
-    private ProcessResponse createProcess(String processKey, String description) throws Exception {
-        return createProcess(processKey, description, modelGenerator.getProcessType());
+    private void seedProcesses() throws Exception {
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST_B);
     }
 
-    private ProcessResponse createProcess(String processKey, String description, String type) throws Exception {
-        var result = mockMvc.perform(post("/api/v1/space/processes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleCreateRequest(processKey, description, type))))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        return objectMapper.readValue(result.getResponse().getContentAsString(), ProcessResponse.class);
+    private void seedProcessesWithVersion() throws Exception {
+        seedProcesses();
+        var base =
+                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+        createVersionFromFixture(base.processKey());
     }
 
-    private void createVersionForSetup(String processKey) throws Exception {
-        createVersion(processKey, sampleVersionRequest());
+    private void saveProcessType(String fixture) {
+        var request = JsonHelper.readFixture(objectMapper, fixture, ProcessTypeCreateRequest.class);
+        processTypeRepository.save(new ProcessTypeDocument(null, request.type(), request.title(), null, null));
     }
 
-    private ProcessResponse createVersion(String processKey, ProcessNewVersionRequest request) throws Exception {
+    private ProcessResponse createProcess(String fixture) throws Exception {
+        var result = postProcess(fixture).andExpect(status().isCreated()).andReturn();
+        return JsonHelper.readJson(objectMapper, result.getResponse().getContentAsString(), ProcessResponse.class);
+    }
+
+    private ProcessResponse createVersionFromFixture(String processKey) throws Exception {
+        var content = JsonHelper.readFixtureJson(JsonHelper.ProcessFixtures.CREATE_VERSION_REQUEST);
         var result = mockMvc.perform(post("/api/v1/space/processes/{processKey}/versions", processKey)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(content))
                 .andExpect(status().isCreated())
                 .andReturn();
-
-        return objectMapper.readValue(result.getResponse().getContentAsString(), ProcessResponse.class);
+        return JsonHelper.readJson(objectMapper, result.getResponse().getContentAsString(), ProcessResponse.class);
     }
 
     private ProcessResponse getProcess(String processKey) throws Exception {
         var result = mockMvc.perform(get("/api/v1/space/processes/{processKey}", processKey))
                 .andExpect(status().isOk())
                 .andReturn();
-
-        return objectMapper.readValue(result.getResponse().getContentAsString(), ProcessResponse.class);
+        return JsonHelper.readJson(objectMapper, result.getResponse().getContentAsString(), ProcessResponse.class);
     }
 
-    private ProcessCreateRequest sampleCreateRequest(String processKey, String description, String type) {
-        return Instancio.of(modelGenerator.getProcessCreateRequestModel())
-                .set(field(ProcessCreateRequest::processKey), processKey)
-                .set(field(ProcessCreateRequest::type), type)
-                .set(field(ProcessCreateRequest::description), description)
-                .create();
-    }
-
-    private void createProcessType(String type, String title) {
-        processTypeRepository.save(new ProcessTypeDocument(null, type, title, null, null));
+    private List<ProcessResponse> getProcesses() throws Exception {
+        var result = mockMvc.perform(get("/api/v1/space/processes"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return JsonHelper.readJsonList(
+                objectMapper, result.getResponse().getContentAsString(), ProcessResponse[].class);
     }
 
     private List<ProcessResponse> getProcessesByType(String type) throws Exception {
         var result = mockMvc.perform(get("/api/v1/space/processes").param("type", type))
                 .andExpect(status().isOk())
                 .andReturn();
-
-        return objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {});
+        return JsonHelper.readJsonList(
+                objectMapper, result.getResponse().getContentAsString(), ProcessResponse[].class);
     }
 
     private List<ProcessResponse> getProcessesPage() throws Exception {
@@ -285,44 +244,77 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
                         .param("size", String.valueOf(1)))
                 .andExpect(status().isOk())
                 .andReturn();
-
-        return objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {});
+        return JsonHelper.readJsonList(
+                objectMapper, result.getResponse().getContentAsString(), ProcessResponse[].class);
     }
 
-    private ProcessNewVersionRequest sampleVersionRequest() {
-        return Instancio.of(modelGenerator.getProcessNewVersionRequestModel()).create();
+    private void deleteProcess(String processKey) throws Exception {
+        mockMvc.perform(delete("/api/v1/space/processes/{processKey}", processKey))
+                .andExpect(status().isNoContent());
     }
 
-    private ProcessNewVersionRequest updatedVersionRequest() {
-        return Instancio.of(modelGenerator.getProcessNewVersionRequestModel())
-                .set(field(ProcessNewVersionRequest::description), modelGenerator.getProcessDescriptionB())
-                .set(
-                        field(ProcessNewVersionRequest::operations),
-                        List.of(new OperationRequest(modelGenerator.getOperationX(), 7)))
-                .set(field(ProcessNewVersionRequest::rate), modelGenerator.getRateUpdate())
-                .create();
+    private void assertProcessNotFound(String processKey) throws Exception {
+        mockMvc.perform(get("/api/v1/space/processes/{processKey}", processKey)).andExpect(status().isNotFound());
     }
 
-    private void assertUpdatedVersionResponse(ProcessResponse response) {
-        assertThat(response)
+    private void assertStoredProcess(ProcessResponse expected, ProcessResponse created) {
+        var stored = repository.findById(created.id()).orElseThrow();
+        Assertions.assertThat(stored)
                 .extracting(
-                        ProcessResponse::processKey,
-                        ProcessResponse::version,
-                        ProcessResponse::description,
-                        ProcessResponse::rate)
+                        ProcessDocument::processKey,
+                        ProcessDocument::version,
+                        ProcessDocument::description,
+                        ProcessDocument::volumeUnit,
+                        ProcessDocument::batchVolume,
+                        ProcessDocument::handoffMode)
                 .containsExactly(
-                        modelGenerator.getProcessKeyA(),
-                        2,
-                        modelGenerator.getProcessDescriptionB(),
-                        new RateResponse(2, 1, modelGenerator.getUnit()));
+                        expected.processKey(),
+                        1,
+                        expected.description(),
+                        expected.volumeUnit(),
+                        expected.batchVolume(),
+                        expected.handoffMode());
+        assertThatJsonEquals(
+                JsonHelper.toJsonTree(objectMapper, stored.operations()),
+                JsonHelper.toJsonTree(objectMapper, expected.operations()));
+        assertThatJsonEquals(
+                JsonHelper.toJsonTree(objectMapper, stored.rateOptions()),
+                JsonHelper.toJsonTree(objectMapper, expected.rateOptions()));
     }
 
-    private void assertStoredLatestVersion(ProcessResponse response, RateDocument rate) {
+    private void assertStoredLatestVersion(ProcessResponse expected) {
         var stored = repository
-                .findTopByProcessKeyOrderByVersionDesc(response.processKey())
+                .findTopByProcessKeyOrderByVersionDesc(expected.processKey())
                 .orElseThrow();
-        assertThat(stored)
-                .extracting(ProcessDocument::version, ProcessDocument::description, ProcessDocument::rate)
-                .containsExactly(response.version(), response.description(), rate);
+        Assertions.assertThat(stored)
+                .extracting(
+                        ProcessDocument::version,
+                        ProcessDocument::description,
+                        ProcessDocument::volumeUnit,
+                        ProcessDocument::batchVolume,
+                        ProcessDocument::handoffMode)
+                .containsExactly(
+                        expected.version(),
+                        expected.description(),
+                        expected.volumeUnit(),
+                        expected.batchVolume(),
+                        expected.handoffMode());
+        assertThatJsonEquals(
+                JsonHelper.toJsonTree(objectMapper, stored.operations()),
+                JsonHelper.toJsonTree(objectMapper, expected.operations()));
+        assertThatJsonEquals(
+                JsonHelper.toJsonTree(objectMapper, stored.rateOptions()),
+                JsonHelper.toJsonTree(objectMapper, expected.rateOptions()));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postProcess(String name) throws Exception {
+        var content = JsonHelper.readFixtureJson(name);
+        return mockMvc.perform(post("/api/v1/space/processes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content));
+    }
+
+    private void assertThatJsonEquals(JsonNode actual, JsonNode expected) {
+        Assertions.assertThat(actual).isEqualTo(expected);
     }
 }

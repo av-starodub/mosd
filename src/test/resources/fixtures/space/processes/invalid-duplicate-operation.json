@@ -1,0 +1,28 @@
+{
+  "processKey": "PROC-DUP-OP",
+  "type": "CUT",
+  "description": "Duplicate operation",
+  "volumeUnit": "pcs",
+  "batchVolume": 50,
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "name": "op-1",
+      "executionTime": 5
+    },
+    {
+      "name": "op-1",
+      "executionTime": 7
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

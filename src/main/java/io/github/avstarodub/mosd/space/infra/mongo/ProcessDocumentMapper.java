@@ -3,6 +3,7 @@ package io.github.avstarodub.mosd.space.infra.mongo;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.Rate;
+import io.github.avstarodub.mosd.space.domain.RateOption;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 
@@ -16,8 +17,11 @@ public class ProcessDocumentMapper {
                 process.version(),
                 process.type(),
                 process.description(),
+                process.volumeUnit(),
+                process.batchVolume(),
+                process.handoffMode(),
                 toOperationDocuments(process.operations()),
-                toRateDocument(process.rate()),
+                toRateOptionDocuments(process.rateOptions()),
                 process.createdAt(),
                 process.updatedAt());
     }
@@ -29,8 +33,11 @@ public class ProcessDocumentMapper {
                 document.version(),
                 document.type(),
                 document.description(),
+                document.volumeUnit(),
+                document.batchVolume(),
+                document.handoffMode(),
                 toOperations(document.operations()),
-                toRate(document.rate()),
+                toRateOptions(document.rateOptions()),
                 document.createdAt(),
                 document.updatedAt());
     }
@@ -47,11 +54,27 @@ public class ProcessDocumentMapper {
                 .toList();
     }
 
+    private static List<RateOptionDocument> toRateOptionDocuments(List<RateOption> options) {
+        return options.stream().map(ProcessDocumentMapper::toRateOptionDocument).toList();
+    }
+
+    private static List<RateOption> toRateOptions(List<RateOptionDocument> options) {
+        return options.stream().map(ProcessDocumentMapper::toRateOption).toList();
+    }
+
+    private static RateOptionDocument toRateOptionDocument(RateOption option) {
+        return new RateOptionDocument(option.key(), option.title(), toRateDocument(option.rate()));
+    }
+
+    private static RateOption toRateOption(RateOptionDocument option) {
+        return new RateOption(option.key(), option.title(), toRate(option.rate()));
+    }
+
     private static RateDocument toRateDocument(Rate rate) {
-        return new RateDocument(rate.units(), rate.minutes(), rate.unit());
+        return new RateDocument(rate.units(), rate.minutes());
     }
 
     private static Rate toRate(RateDocument rate) {
-        return new Rate(rate.units(), rate.minutes(), rate.unit());
+        return new Rate(rate.units(), rate.minutes());
     }
 }

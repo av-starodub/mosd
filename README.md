@@ -30,11 +30,12 @@ MOSD может использоваться автономно или в сос
 ## 🔒 Безопасность
 - Проект использует Dependabot для автоматического мониторинга уязвимостей в зависимостях
 
-## 📚 API (Space)
-- `GET /api/v1/space/processes` — список актуальных (latest) процессов  
-  Фильтры и параметры:
-  - `type` — фильтр по типу процесса (process type key)
-  - `page` — номер страницы (с 0, по умолчанию 0)
-  - `size` — размер страницы (по умолчанию 50)
-  - `sortBy` — поле сортировки: `processKey`, `type`, `version`, `createdAt`, `updatedAt`
-  - `sortDir` — направление сортировки: `asc` или `desc`
+## 📚 Документация
+- [Документация](docs/README.md)
+- [API](docs/api.md)
+- [Архитектура](docs/architecture.md)
+- [Модели данных](docs/data-models.md)
+- [DTO (JSON схемы)](docs/dto.md)
+- [Требования](docs/requirements.md)
+- [Решения (ADR)](docs/decisions.md)
+- [Разработка](docs/development.md)

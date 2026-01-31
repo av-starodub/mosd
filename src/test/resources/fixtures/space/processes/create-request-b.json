@@ -1,0 +1,28 @@
+{
+  "processKey": "PROC-B",
+  "type": "WELD",
+  "description": "Primary welding",
+  "volumeUnit": "pcs",
+  "batchVolume": 50,
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "name": "op-1",
+      "executionTime": 5
+    },
+    {
+      "name": "op-2",
+      "executionTime": 10
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

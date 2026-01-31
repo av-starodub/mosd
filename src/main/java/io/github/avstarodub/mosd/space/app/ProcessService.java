@@ -9,6 +9,7 @@ import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.ProcessRepository;
+import io.github.avstarodub.mosd.space.domain.RateOption;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ public class ProcessService {
         var process = ProcessApiMapper.toDomain(request);
         validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
+        validateUniqueRateOptionKeys(process.rateOptions());
         return repository.save(ProcessApiMapper.withVersion(process, 1));
     }
 
@@ -38,6 +40,7 @@ public class ProcessService {
         var process = ProcessApiMapper.withProcessKey(ProcessApiMapper.toDomain(request), processKey);
         validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
+        validateUniqueRateOptionKeys(process.rateOptions());
         return repository.save(ProcessApiMapper.withVersion(process, latest.version() + 1));
     }
 
@@ -82,6 +85,16 @@ public class ProcessService {
             var name = operation.name();
             if (!seen.add(name)) {
                 throw new DuplicateResourceException("Operation", "name", name);
+            }
+        }
+    }
+
+    private void validateUniqueRateOptionKeys(List<RateOption> options) {
+        var seen = new HashSet<String>();
+        for (var option : options) {
+            var key = option.key();
+            if (!seen.add(key)) {
+                throw new DuplicateResourceException("RateOption", "key", key);
             }
         }
     }

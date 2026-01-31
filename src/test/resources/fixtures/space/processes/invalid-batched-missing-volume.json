@@ -1,0 +1,23 @@
+{
+  "processKey": "PROC-NO-VOLUME",
+  "type": "CUT",
+  "description": "Missing batch volume",
+  "volumeUnit": "pcs",
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "name": "op-1",
+      "executionTime": 5
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

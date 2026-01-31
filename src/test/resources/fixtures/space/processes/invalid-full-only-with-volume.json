@@ -1,0 +1,24 @@
+{
+  "processKey": "PROC-FULL-ONLY",
+  "type": "CUT",
+  "description": "Full only with batch",
+  "volumeUnit": "pcs",
+  "batchVolume": 10,
+  "handoffMode": "FULL_ONLY",
+  "operations": [
+    {
+      "name": "op-1",
+      "executionTime": 5
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "processKey": "PROC-BLANK-OP",
+  "type": "CUT",
+  "description": "Blank operation",
+  "volumeUnit": "pcs",
+  "batchVolume": 50,
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "name": " ",
+      "executionTime": 5
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

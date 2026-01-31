@@ -1,0 +1,62 @@
+[
+  {
+    "id": null,
+    "processKey": "PROC-A",
+    "version": 2,
+    "type": "CUT",
+    "description": "Updated description",
+    "volumeUnit": "pcs",
+    "batchVolume": 50,
+    "handoffMode": "BATCHED",
+    "operations": [
+      {
+        "name": "op-3",
+        "executionTime": 7
+      }
+    ],
+    "rateOptions": [
+      {
+        "key": "ALT",
+        "title": "Alternate",
+        "rate": {
+          "units": 4,
+          "minutes": 2
+        }
+      }
+    ],
+    "createdAt": null,
+    "updatedAt": null
+  },
+  {
+    "id": null,
+    "processKey": "PROC-B",
+    "version": 1,
+    "type": "WELD",
+    "description": "Primary welding",
+    "volumeUnit": "pcs",
+    "batchVolume": 50,
+    "handoffMode": "BATCHED",
+    "operations": [
+      {
+        "name": "op-1",
+        "executionTime": 5
+      },
+      {
+        "name": "op-2",
+        "executionTime": 10
+      }
+    ],
+    "rateOptions": [
+      {
+        "key": "STD",
+        "title": "Standard",
+        "rate": {
+          "units": 3,
+          "minutes": 2
+        }
+      }
+    ],
+    "createdAt": null,
+    "updatedAt": null
+  }
+]
