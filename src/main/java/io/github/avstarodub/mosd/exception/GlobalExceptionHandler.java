@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    @ExceptionHandler({DuplicateResourceException.class, DuplicateKeyException.class})
+    @ExceptionHandler({DuplicateResourceException.class, DuplicateKeyException.class, ResourceInUseException.class})
     public ResponseEntity<ErrorResponse> handleDuplicateResource(Exception ex, HttpServletRequest request) {
         LOG.warn("Duplicate resource: {}", ex.getMessage());
         var response = new ErrorResponse(

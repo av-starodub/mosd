@@ -1,7 +1,8 @@
 package io.github.avstarodub.mosd.space.api.controller;
 
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
-import io.github.avstarodub.mosd.space.api.dto.ProcessRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.app.ProcessService;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -31,33 +31,62 @@ public class ProcessController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProcessResponse create(@Valid @RequestBody ProcessRequest request) {
+    public ProcessResponse create(@Valid @RequestBody ProcessCreateRequest request) {
         var created = service.create(request);
         return ProcessApiMapper.toResponse(created);
     }
 
-    @GetMapping("/{id}")
-    public ProcessResponse getById(@PathVariable @NotBlank String id) {
-        return service.getById(id)
+    @PostMapping("/{processKey}/versions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProcessResponse createVersion(
+            @PathVariable @NotBlank String processKey, @Valid @RequestBody ProcessNewVersionRequest request) {
+        var created = service.createVersion(processKey, request);
+        return ProcessApiMapper.toResponse(created);
+    }
+
+    @GetMapping("/{processKey}")
+    @ResponseStatus(HttpStatus.OK)
+    public ProcessResponse getLatest(@PathVariable @NotBlank String processKey) {
+        return service.getLatestByProcessKey(processKey)
                 .map(ProcessApiMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Process", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Process", "processKey", processKey));
     }
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public List<ProcessResponse> getAll() {
-        return service.getAll().stream().map(ProcessApiMapper::toResponse).toList();
+        return service.getAllLatest().stream().map(ProcessApiMapper::toResponse).toList();
     }
 
-    @PutMapping("/{id}")
-    public ProcessResponse update(@PathVariable @NotBlank String id, @Valid @RequestBody ProcessRequest request) {
-        return service.update(id, request)
+    @GetMapping("/versions")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ProcessResponse> getAllVersions() {
+        return service.getAllVersions().stream()
                 .map(ProcessApiMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Process", "id", id));
+                .toList();
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/{processKey}/versions")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ProcessResponse> getProcessVersions(@PathVariable @NotBlank String processKey) {
+        var versions = service.getVersionsByProcessKey(processKey);
+        if (versions.isEmpty()) {
+            throw new ResourceNotFoundException("Process", "processKey", processKey);
+        }
+        return versions.stream().map(ProcessApiMapper::toResponse).toList();
+    }
+
+    @GetMapping("/{processKey}/versions/{version}")
+    @ResponseStatus(HttpStatus.OK)
+    public ProcessResponse getProcessVersion(@PathVariable @NotBlank String processKey, @PathVariable int version) {
+        return service.getByProcessKeyAndVersion(processKey, version)
+                .map(ProcessApiMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Process", "version", processKey + ":" + version));
+    }
+
+    @DeleteMapping("/{processKey}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable @NotBlank String id) {
-        service.delete(id);
+    public void delete(@PathVariable @NotBlank String processKey) {
+        service.delete(processKey);
     }
 }

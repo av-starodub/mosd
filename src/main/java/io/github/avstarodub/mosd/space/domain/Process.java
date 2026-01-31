@@ -5,8 +5,10 @@ import java.util.List;
 
 public record Process(
         String id,
+        String processKey,
+        int version,
         String type,
-        String title,
+        String description,
         List<Operation> operations,
         Rate rate,
         Instant createdAt,

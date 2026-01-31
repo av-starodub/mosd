@@ -3,7 +3,8 @@ package io.github.avstarodub.mosd.space.testdata;
 import static org.instancio.Select.field;
 
 import io.github.avstarodub.mosd.space.api.dto.OperationRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.RateRequest;
 import io.github.avstarodub.mosd.space.infra.mongo.OperationDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocument;
@@ -22,9 +23,15 @@ public class ModelGenerator {
 
     private final String processType = "CUT";
 
-    private final String processTitleA = "Process A";
+    private final String processTypeTitle = "Cutting";
 
-    private final String processTitleB = "Process B";
+    private final String processKeyA = "CUT-01";
+
+    private final String processKeyB = "CUT-02";
+
+    private final String processDescriptionA = "Process A";
+
+    private final String processDescriptionB = "Process B";
 
     private final String operation1 = "op-1";
 
@@ -44,27 +51,54 @@ public class ModelGenerator {
 
     private final Faker faker = new Faker();
 
-    private Model<ProcessRequest> processRequestModel;
+    private Model<ProcessNewVersionRequest> processNewVersionRequestModel;
+
+    private Model<ProcessCreateRequest> processCreateRequestModel;
 
     private Model<ProcessDocument> processDocumentModel;
 
     @PostConstruct
     private void init() {
-        processRequestModel = Instancio.of(ProcessRequest.class)
-                .set(field(ProcessRequest::type), processType)
-                .supply(field(ProcessRequest::title), () -> faker.commerce().productName())
-                .set(
-                        field(ProcessRequest::operations),
-                        List.of(new OperationRequest(operation1, 5), new OperationRequest(operation2, 10)))
-                .set(field(ProcessRequest::rate), rateDefault)
-                .toModel();
+        processNewVersionRequestModel = buildNewVersionRequestModel();
+        processCreateRequestModel = buildCreateRequestModel();
+        processDocumentModel = buildProcessDocumentModel();
+    }
 
-        processDocumentModel = Instancio.of(ProcessDocument.class)
+    private Model<ProcessNewVersionRequest> buildNewVersionRequestModel() {
+        return Instancio.of(ProcessNewVersionRequest.class)
+                .set(field(ProcessNewVersionRequest::type), processType)
+                .supply(field(ProcessNewVersionRequest::description), () -> faker.commerce()
+                        .productName())
+                .set(
+                        field(ProcessNewVersionRequest::operations),
+                        List.of(new OperationRequest(operation1, 5), new OperationRequest(operation2, 10)))
+                .set(field(ProcessNewVersionRequest::rate), rateDefault)
+                .toModel();
+    }
+
+    private Model<ProcessCreateRequest> buildCreateRequestModel() {
+        return Instancio.of(ProcessCreateRequest.class)
+                .set(field(ProcessCreateRequest::processKey), processKeyA)
+                .set(field(ProcessCreateRequest::type), processType)
+                .supply(field(ProcessCreateRequest::description), () -> faker.commerce()
+                        .productName())
+                .set(
+                        field(ProcessCreateRequest::operations),
+                        List.of(new OperationRequest(operation1, 5), new OperationRequest(operation2, 10)))
+                .set(field(ProcessCreateRequest::rate), rateDefault)
+                .toModel();
+    }
+
+    private Model<ProcessDocument> buildProcessDocumentModel() {
+        return Instancio.of(ProcessDocument.class)
                 .ignore(field(ProcessDocument::id))
                 .ignore(field(ProcessDocument::createdAt))
                 .ignore(field(ProcessDocument::updatedAt))
+                .set(field(ProcessDocument::processKey), processKeyA)
+                .set(field(ProcessDocument::version), 1)
                 .set(field(ProcessDocument::type), processType)
-                .supply(field(ProcessDocument::title), () -> faker.commerce().productName())
+                .supply(field(ProcessDocument::description), () -> faker.commerce()
+                        .productName())
                 .set(
                         field(ProcessDocument::operations),
                         List.of(new OperationDocument(operation1, 5), new OperationDocument(operation2, 10)))

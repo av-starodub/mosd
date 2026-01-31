@@ -2,7 +2,8 @@ package io.github.avstarodub.mosd.space.api.mapper;
 
 import io.github.avstarodub.mosd.space.api.dto.OperationRequest;
 import io.github.avstarodub.mosd.space.api.dto.OperationResponse;
-import io.github.avstarodub.mosd.space.api.dto.ProcessRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.dto.RateRequest;
 import io.github.avstarodub.mosd.space.api.dto.RateResponse;
@@ -15,11 +16,26 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ProcessApiMapper {
 
-    public static Process toDomain(ProcessRequest request) {
+    public static Process toDomain(ProcessCreateRequest request) {
         return new Process(
                 null,
+                request.processKey().strip(),
+                0,
                 request.type().strip(),
-                request.title().strip(),
+                normalizeDescription(request.description()),
+                toOperations(request.operations()),
+                toRate(request.rate()),
+                null,
+                null);
+    }
+
+    public static Process toDomain(ProcessNewVersionRequest request) {
+        return new Process(
+                null,
+                null,
+                0,
+                request.type().strip(),
+                normalizeDescription(request.description()),
                 toOperations(request.operations()),
                 toRate(request.rate()),
                 null,
@@ -29,23 +45,40 @@ public class ProcessApiMapper {
     public static ProcessResponse toResponse(Process process) {
         return new ProcessResponse(
                 process.id(),
+                process.processKey(),
+                process.version(),
                 process.type(),
-                process.title(),
+                process.description(),
                 toOperationResponses(process.operations()),
                 toRateResponse(process.rate()),
                 process.createdAt(),
                 process.updatedAt());
     }
 
-    public static Process update(Process existing, Process updated) {
+    public static Process withProcessKey(Process process, String processKey) {
         return new Process(
-                existing.id(),
-                updated.type(),
-                updated.title(),
-                updated.operations(),
-                updated.rate(),
-                existing.createdAt(),
-                null);
+                process.id(),
+                processKey.strip(),
+                process.version(),
+                process.type(),
+                process.description(),
+                process.operations(),
+                process.rate(),
+                process.createdAt(),
+                process.updatedAt());
+    }
+
+    public static Process withVersion(Process process, int version) {
+        return new Process(
+                process.id(),
+                process.processKey(),
+                version,
+                process.type(),
+                process.description(),
+                process.operations(),
+                process.rate(),
+                process.createdAt(),
+                process.updatedAt());
     }
 
     private static List<Operation> toOperations(List<OperationRequest> operations) {
@@ -66,5 +99,12 @@ public class ProcessApiMapper {
 
     private static RateResponse toRateResponse(Rate rate) {
         return new RateResponse(rate.units(), rate.minutes(), rate.unit());
+    }
+
+    private static String normalizeDescription(String description) {
+        if (description == null) {
+            return null;
+        }
+        return description.strip();
     }
 }

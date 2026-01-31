@@ -6,8 +6,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-public record ProcessRequest(
+public record ProcessCreateRequest(
+        @NotBlank String processKey,
         @NotBlank String type,
-        @NotBlank String title,
+        String description,
         @NotEmpty @Valid List<OperationRequest> operations,
         @NotNull @Valid RateRequest rate) {}

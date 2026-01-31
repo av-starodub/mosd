@@ -5,8 +5,10 @@ import java.util.List;
 
 public record ProcessResponse(
         String id,
+        String processKey,
+        int version,
         String type,
-        String title,
+        String description,
         List<OperationResponse> operations,
         RateResponse rate,
         Instant createdAt,

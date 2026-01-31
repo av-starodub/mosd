@@ -5,14 +5,20 @@ import java.util.List;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document("processes")
+@CompoundIndexes(
+        @CompoundIndex(name = "process_key_version_unique", def = "{'processKey': 1, 'version': 1}", unique = true))
 public record ProcessDocument(
         @Id String id,
+        @Indexed String processKey,
+        int version,
         String type,
-        @Indexed(unique = true) String title,
+        String description,
         List<OperationDocument> operations,
         RateDocument rate,
         @CreatedDate Instant createdAt,

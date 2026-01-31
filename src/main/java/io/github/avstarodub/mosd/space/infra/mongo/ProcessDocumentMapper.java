@@ -12,8 +12,10 @@ public class ProcessDocumentMapper {
     public static ProcessDocument toDocument(Process process) {
         return new ProcessDocument(
                 process.id(),
+                process.processKey(),
+                process.version(),
                 process.type(),
-                process.title(),
+                process.description(),
                 toOperationDocuments(process.operations()),
                 toRateDocument(process.rate()),
                 process.createdAt(),
@@ -23,8 +25,10 @@ public class ProcessDocumentMapper {
     public static Process toDomain(ProcessDocument document) {
         return new Process(
                 document.id(),
+                document.processKey(),
+                document.version(),
                 document.type(),
-                document.title(),
+                document.description(),
                 toOperations(document.operations()),
                 toRate(document.rate()),
                 document.createdAt(),

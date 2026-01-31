@@ -1,7 +1,9 @@
 package io.github.avstarodub.mosd.space.app;
 
 import io.github.avstarodub.mosd.exception.DuplicateResourceException;
-import io.github.avstarodub.mosd.space.api.dto.ProcessRequest;
+import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
+import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
@@ -18,31 +20,47 @@ public class ProcessService {
 
     private final ProcessRepository repository;
 
-    public Process create(ProcessRequest request) {
+    private final ProcessTypeService processTypeService;
+
+    public Process create(ProcessCreateRequest request) {
         var process = ProcessApiMapper.toDomain(request);
+        validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
-        return repository.save(process);
+        return repository.save(ProcessApiMapper.withVersion(process, 1));
     }
 
-    public Optional<Process> getById(String id) {
-        return repository.findById(id);
-    }
-
-    public List<Process> getAll() {
-        return repository.findAll();
-    }
-
-    public Optional<Process> update(String id, ProcessRequest request) {
-        var process = ProcessApiMapper.toDomain(request);
+    public Process createVersion(String processKey, ProcessNewVersionRequest request) {
+        var latest = repository
+                .findLatestByProcessKey(processKey)
+                .orElseThrow(() -> new ResourceNotFoundException("Process", "processKey", processKey));
+        var process = ProcessApiMapper.withProcessKey(ProcessApiMapper.toDomain(request), processKey);
+        validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
-        return repository
-                .findById(id)
-                .map(existing -> ProcessApiMapper.update(existing, process))
-                .map(repository::save);
+        return repository.save(ProcessApiMapper.withVersion(process, latest.version() + 1));
     }
 
-    public void delete(String id) {
-        repository.deleteById(id);
+    public Optional<Process> getLatestByProcessKey(String processKey) {
+        return repository.findLatestByProcessKey(processKey);
+    }
+
+    public Optional<Process> getByProcessKeyAndVersion(String processKey, int version) {
+        return repository.findByProcessKeyAndVersion(processKey, version);
+    }
+
+    public List<Process> getAllLatest() {
+        return repository.findAllLatestVersions();
+    }
+
+    public List<Process> getAllVersions() {
+        return repository.findAllVersions();
+    }
+
+    public List<Process> getVersionsByProcessKey(String processKey) {
+        return repository.findAllVersionsByProcessKey(processKey);
+    }
+
+    public void delete(String processKey) {
+        repository.deleteByProcessKey(processKey);
     }
 
     private void validateUniqueOperationNames(List<Operation> operations) {
@@ -52,6 +70,12 @@ public class ProcessService {
             if (!seen.add(name)) {
                 throw new DuplicateResourceException("Operation", "name", name);
             }
+        }
+    }
+
+    private void validateTypeExists(String type) {
+        if (!processTypeService.existsByType(type)) {
+            throw new ResourceNotFoundException("ProcessType", "type", type);
         }
     }
 }

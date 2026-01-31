@@ -7,9 +7,17 @@ public interface ProcessRepository {
 
     Process save(Process process);
 
-    Optional<Process> findById(String id);
+    Optional<Process> findLatestByProcessKey(String processKey);
 
-    List<Process> findAll();
+    Optional<Process> findByProcessKeyAndVersion(String processKey, int version);
 
-    void deleteById(String id);
+    boolean existsByType(String type);
+
+    List<Process> findAllVersions();
+
+    List<Process> findAllVersionsByProcessKey(String processKey);
+
+    void deleteByProcessKey(String processKey);
+
+    List<Process> findAllLatestVersions();
 }
