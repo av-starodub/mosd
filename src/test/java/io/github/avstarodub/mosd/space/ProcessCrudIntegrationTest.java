@@ -127,7 +127,9 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         mockMvc.perform(post("/api/v1/space/processes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleCreateRequest(
-                                modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA()))))
+                                modelGenerator.getProcessKeyA(),
+                                modelGenerator.getProcessDescriptionA(),
+                                modelGenerator.getProcessType()))))
                 .andExpect(status().isConflict());
     }
 
@@ -189,10 +191,44 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         assertThat(processA.version()).isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("Filter latest processes by type")
+    void getAllProcessesByType() throws Exception {
+        createProcessType(modelGenerator.getProcessTypeB(), modelGenerator.getProcessTypeTitleB());
+        createProcess(
+                modelGenerator.getProcessKeyA(),
+                modelGenerator.getProcessDescriptionA(),
+                modelGenerator.getProcessType());
+        createProcess(
+                modelGenerator.getProcessKeyB(),
+                modelGenerator.getProcessDescriptionB(),
+                modelGenerator.getProcessTypeB());
+
+        var processes = getProcessesByType(modelGenerator.getProcessType());
+        assertThat(processes).hasSize(1);
+        assertThat(processes.getFirst().processKey()).isEqualTo(modelGenerator.getProcessKeyA());
+    }
+
+    @Test
+    @DisplayName("Sort and paginate latest processes")
+    void sortAndPaginateProcesses() throws Exception {
+        createProcess(modelGenerator.getProcessKeyA(), modelGenerator.getProcessDescriptionA());
+        createProcess(modelGenerator.getProcessKeyB(), modelGenerator.getProcessDescriptionB());
+
+        var processes = getProcessesPage();
+
+        assertThat(processes).hasSize(1);
+        assertThat(processes.getFirst().processKey()).isEqualTo(modelGenerator.getProcessKeyB());
+    }
+
     private ProcessResponse createProcess(String processKey, String description) throws Exception {
+        return createProcess(processKey, description, modelGenerator.getProcessType());
+    }
+
+    private ProcessResponse createProcess(String processKey, String description, String type) throws Exception {
         var result = mockMvc.perform(post("/api/v1/space/processes")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(sampleCreateRequest(processKey, description))))
+                        .content(objectMapper.writeValueAsString(sampleCreateRequest(processKey, description, type))))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -221,11 +257,36 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         return objectMapper.readValue(result.getResponse().getContentAsString(), ProcessResponse.class);
     }
 
-    private ProcessCreateRequest sampleCreateRequest(String processKey, String description) {
+    private ProcessCreateRequest sampleCreateRequest(String processKey, String description, String type) {
         return Instancio.of(modelGenerator.getProcessCreateRequestModel())
                 .set(field(ProcessCreateRequest::processKey), processKey)
+                .set(field(ProcessCreateRequest::type), type)
                 .set(field(ProcessCreateRequest::description), description)
                 .create();
+    }
+
+    private void createProcessType(String type, String title) {
+        processTypeRepository.save(new ProcessTypeDocument(null, type, title, null, null));
+    }
+
+    private List<ProcessResponse> getProcessesByType(String type) throws Exception {
+        var result = mockMvc.perform(get("/api/v1/space/processes").param("type", type))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {});
+    }
+
+    private List<ProcessResponse> getProcessesPage() throws Exception {
+        var result = mockMvc.perform(get("/api/v1/space/processes")
+                        .param("sortBy", "processKey")
+                        .param("sortDir", "desc")
+                        .param("page", String.valueOf(0))
+                        .param("size", String.valueOf(1)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {});
     }
 
     private ProcessNewVersionRequest sampleVersionRequest() {

@@ -25,6 +25,10 @@ public class ModelGenerator {
 
     private final String processTypeTitle = "Cutting";
 
+    private final String processTypeB = "WELD";
+
+    private final String processTypeTitleB = "Welding";
+
     private final String processKeyA = "CUT-01";
 
     private final String processKeyB = "CUT-02";

@@ -3,11 +3,13 @@ package io.github.avstarodub.mosd.space.app;
 import io.github.avstarodub.mosd.exception.DuplicateResourceException;
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.ProcessFilterRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.ProcessRepository;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +53,17 @@ public class ProcessService {
         return repository.findAllLatestVersions();
     }
 
+    public List<Process> getAllLatestByType(String type) {
+        return repository.findAllLatestVersionsByType(type);
+    }
+
+    public List<Process> getAllLatestFiltered(ProcessFilterRequest filter) {
+        var type = normalizeType(filter.type());
+        var processes = type == null ? getAllLatest() : getAllLatestByType(type);
+        var sorted = sort(processes, filter.sortBy(), filter.sortDir());
+        return paginate(sorted, filter.page(), filter.size());
+    }
+
     public List<Process> getAllVersions() {
         return repository.findAllVersions();
     }
@@ -77,5 +90,49 @@ public class ProcessService {
         if (!processTypeService.existsByType(type)) {
             throw new ResourceNotFoundException("ProcessType", "type", type);
         }
+    }
+
+    private List<Process> sort(List<Process> processes, String sortBy, String sortDir) {
+        var sortField = normalizeSortBy(sortBy);
+        var comparator = comparatorFor(sortField);
+        if (isDesc(sortDir)) {
+            comparator = comparator.reversed();
+        }
+        return processes.stream().sorted(comparator).toList();
+    }
+
+    private List<Process> paginate(List<Process> processes, Integer page, Integer size) {
+        var pageValue = page == null ? 0 : page;
+        var sizeValue = size == null ? 50 : size;
+        var fromIndex = pageValue * sizeValue;
+        if (fromIndex >= processes.size()) {
+            return List.of();
+        }
+        var toIndex = Math.min(fromIndex + sizeValue, processes.size());
+        return processes.subList(fromIndex, toIndex);
+    }
+
+    private String normalizeType(String type) {
+        return type == null ? null : type.strip();
+    }
+
+    private String normalizeSortBy(String sortBy) {
+        return sortBy == null ? "processkey" : sortBy.strip().toLowerCase();
+    }
+
+    private boolean isDesc(String sortDir) {
+        return sortDir != null && sortDir.strip().equalsIgnoreCase("desc");
+    }
+
+    private Comparator<Process> comparatorFor(String sortBy) {
+        return switch (sortBy) {
+            case "type" -> Comparator.comparing(Process::type, Comparator.nullsLast(String::compareTo));
+            case "version" -> Comparator.comparingInt(Process::version);
+            case "createdat" ->
+                Comparator.comparing(Process::createdAt, Comparator.nullsLast(Comparator.naturalOrder()));
+            case "updatedat" ->
+                Comparator.comparing(Process::updatedAt, Comparator.nullsLast(Comparator.naturalOrder()));
+            default -> Comparator.comparing(Process::processKey, Comparator.nullsLast(String::compareTo));
+        };
     }
 }

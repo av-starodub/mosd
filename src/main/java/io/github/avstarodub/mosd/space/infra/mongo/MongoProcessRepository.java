@@ -58,6 +58,13 @@ public class MongoProcessRepository implements ProcessRepository {
     }
 
     @Override
+    public List<Process> findAllLatestVersionsByType(String type) {
+        return repository.findAllLatestVersionsByType(type).stream()
+                .map(ProcessDocumentMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public void deleteByProcessKey(String processKey) {
         repository.deleteByProcessKey(processKey);
     }

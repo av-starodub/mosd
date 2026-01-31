@@ -25,4 +25,14 @@ public interface ProcessDocumentRepository extends MongoRepository<ProcessDocume
                 "{$sort: {processKey: 1}}"
             })
     List<ProcessDocument> findAllLatestVersions();
+
+    @Aggregation(
+            pipeline = {
+                "{$match: {type: ?0}}",
+                "{$sort: {processKey: 1, version: -1}}",
+                "{$group: {_id: '$processKey', doc: {$first: '$$ROOT'}}}",
+                "{$replaceRoot: { newRoot: '$doc' }}",
+                "{$sort: {processKey: 1}}"
+            })
+    List<ProcessDocument> findAllLatestVersionsByType(String type);
 }
