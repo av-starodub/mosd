@@ -13,6 +13,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +34,7 @@ public class ProcessService {
         return repository.save(ProcessApiMapper.withVersion(process, 1));
     }
 
+    @Retryable(retryFor = DuplicateKeyException.class, backoff = @Backoff(delay = 50))
     public Process createVersion(String processKey, ProcessNewVersionRequest request) {
         var latest = repository
                 .findLatestByProcessKey(processKey)

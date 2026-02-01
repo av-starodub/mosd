@@ -64,6 +64,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
+    implementation("org.springframework.retry:spring-retry")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.instancio:instancio-junit:$instancioVersion")
