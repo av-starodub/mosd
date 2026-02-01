@@ -8,6 +8,7 @@ import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.app.ProcessService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -72,7 +73,8 @@ public class ProcessController {
 
     @GetMapping("/{processKey}/versions/{version}")
     @ResponseStatus(HttpStatus.OK)
-    public ProcessResponse getProcessVersion(@PathVariable @NotBlank String processKey, @PathVariable int version) {
+    public ProcessResponse getProcessVersion(
+            @PathVariable @NotBlank String processKey, @PathVariable @Positive int version) {
         return service.getByProcessKeyAndVersion(processKey, version)
                 .map(ProcessApiMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Process", "version", processKey + ":" + version));

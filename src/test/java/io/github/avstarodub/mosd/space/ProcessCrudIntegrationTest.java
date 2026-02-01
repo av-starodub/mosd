@@ -169,6 +169,15 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         ResultMatcher.assertResponseListOrdered(actual, expected);
     }
 
+    @Test
+    @DisplayName("Reject non-positive version number")
+    void rejectNonPositiveVersion() throws Exception {
+        mockMvc.perform(get("/api/v1/space/processes/{processKey}/versions/{version}", "PROC-A", 0))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/space/processes/{processKey}/versions/{version}", "PROC-A", -1))
+                .andExpect(status().isBadRequest());
+    }
+
     private void seedProcesses() throws Exception {
         createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
         createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST_B);
