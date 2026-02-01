@@ -11,8 +11,6 @@ public interface ProcessRepository {
 
     Optional<Process> findByProcessKeyAndVersion(String processKey, int version);
 
-    boolean existsByType(String type);
-
     List<Process> findAllVersionsByProcessKey(String processKey);
 
     void deleteByProcessKey(String processKey);

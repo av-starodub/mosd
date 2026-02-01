@@ -1,7 +1,6 @@
 package io.github.avstarodub.mosd.space;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -100,33 +99,11 @@ class ProcessTypeCrudIntegrationTest extends AbstractTestcontainersConfiguration
     }
 
     @Test
-    @DisplayName("Delete process type removes it from storage")
-    void deleteProcessType() throws Exception {
-        createProcessType(JsonHelper.ProcessTypeFixtures.WELD_REQUEST);
-        var expected = JsonHelper.readFixture(
-                objectMapper, JsonHelper.ProcessTypeFixtures.WELD_RESPONSE, ProcessTypeResponse.class);
-
-        mockMvc.perform(delete("/api/v1/space/process-types/{type}", expected.type()))
-                .andExpect(status().isNoContent());
-
-        assertThat(processTypeRepository.findByType(expected.type())).isEmpty();
-    }
-
-    @Test
     @DisplayName("Reject duplicate process type")
     void duplicateProcessType() throws Exception {
         createProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST);
 
         postProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST).andExpect(status().isConflict());
-    }
-
-    @Test
-    @DisplayName("Reject delete when process type is in use")
-    void deleteProcessTypeInUse() throws Exception {
-        var created = createProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST);
-
-        mockMvc.perform(delete("/api/v1/space/process-types/{type}", created.type()))
-                .andExpect(status().isConflict());
     }
 
     private ProcessTypeResponse createProcessType(String fixture) throws Exception {

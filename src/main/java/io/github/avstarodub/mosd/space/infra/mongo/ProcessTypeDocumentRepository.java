@@ -8,6 +8,4 @@ public interface ProcessTypeDocumentRepository extends MongoRepository<ProcessTy
     Optional<ProcessTypeDocument> findByType(String type);
 
     boolean existsByType(String type);
-
-    void deleteByType(String type);
 }

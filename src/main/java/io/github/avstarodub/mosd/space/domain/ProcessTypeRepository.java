@@ -12,6 +12,4 @@ public interface ProcessTypeRepository {
     boolean existsByType(String type);
 
     List<ProcessType> findAll();
-
-    void deleteByType(String type);
 }

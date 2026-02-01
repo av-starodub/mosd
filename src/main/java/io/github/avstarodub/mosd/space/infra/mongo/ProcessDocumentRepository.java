@@ -13,8 +13,6 @@ public interface ProcessDocumentRepository extends MongoRepository<ProcessDocume
 
     List<ProcessDocument> findByProcessKeyOrderByVersionAsc(String processKey);
 
-    boolean existsByType(String type);
-
     void deleteByProcessKey(String processKey);
 
     @Aggregation(

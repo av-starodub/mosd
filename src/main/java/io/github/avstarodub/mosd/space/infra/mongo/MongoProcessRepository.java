@@ -30,11 +30,6 @@ public class MongoProcessRepository implements ProcessRepository {
     }
 
     @Override
-    public boolean existsByType(String type) {
-        return repository.existsByType(type);
-    }
-
-    @Override
     public List<Process> findAllVersionsByProcessKey(String processKey) {
         return repository.findByProcessKeyOrderByVersionAsc(processKey).stream()
                 .map(ProcessDocumentMapper::toDomain)

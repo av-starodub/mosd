@@ -35,9 +35,4 @@ public class MongoProcessTypeRepository implements ProcessTypeRepository {
                 .map(ProcessTypeDocumentMapper::toDomain)
                 .toList();
     }
-
-    @Override
-    public void deleteByType(String type) {
-        repository.deleteByType(type);
-    }
 }
