@@ -18,7 +18,7 @@ public record ProcessDocument(
         @Id String id,
         @Indexed String processKey,
         int version,
-        String type,
+        @Indexed String type,
         String description,
         String volumeUnit,
         Integer batchVolume,
