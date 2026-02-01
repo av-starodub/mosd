@@ -36,6 +36,7 @@ public class ProcessTypeController {
     }
 
     @GetMapping("/{type}")
+    @ResponseStatus(HttpStatus.OK)
     public ProcessTypeResponse getByType(@PathVariable @NotBlank String type) {
         return service.getByType(type)
                 .map(ProcessTypeApiMapper::toResponse)
@@ -43,6 +44,7 @@ public class ProcessTypeController {
     }
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public List<ProcessTypeResponse> getAll() {
         return service.getAll().stream().map(ProcessTypeApiMapper::toResponse).toList();
     }
