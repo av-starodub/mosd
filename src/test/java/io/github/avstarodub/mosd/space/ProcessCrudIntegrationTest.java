@@ -1,6 +1,5 @@
 package io.github.avstarodub.mosd.space;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,20 +88,6 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
         ResultMatcher.assertResponse(actual, expected);
         assertStoredLatestVersion(expected);
-    }
-
-    @Test
-    @DisplayName("Delete process removes it from storage")
-    void deleteProcess() throws Exception {
-        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
-        var expected =
-                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
-
-        deleteProcess(expected.processKey());
-
-        assertProcessNotFound(expected.processKey());
-        Assertions.assertThat(repository.findTopByProcessKeyOrderByVersionDesc(expected.processKey()))
-                .isEmpty();
     }
 
     @Test
@@ -231,15 +216,6 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
                 .andReturn();
         return JsonHelper.readJsonList(
                 objectMapper, result.getResponse().getContentAsString(), ProcessResponse[].class);
-    }
-
-    private void deleteProcess(String processKey) throws Exception {
-        mockMvc.perform(delete("/api/v1/space/processes/{processKey}", processKey))
-                .andExpect(status().isNoContent());
-    }
-
-    private void assertProcessNotFound(String processKey) throws Exception {
-        mockMvc.perform(get("/api/v1/space/processes/{processKey}", processKey)).andExpect(status().isNotFound());
     }
 
     private void assertStoredProcess(ProcessResponse expected, ProcessResponse created) {

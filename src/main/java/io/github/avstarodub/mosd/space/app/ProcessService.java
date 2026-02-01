@@ -39,10 +39,12 @@ public class ProcessService {
         var latest = repository
                 .findLatestByProcessKey(processKey)
                 .orElseThrow(() -> new ResourceNotFoundException("Process", "processKey", processKey));
+
         var process = ProcessApiMapper.withProcessKey(ProcessApiMapper.toDomain(request), processKey);
         validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
         validateUniqueRateOptionKeys(process.rateOptions());
+
         return repository.save(ProcessApiMapper.withVersion(process, latest.version() + 1));
     }
 
@@ -64,10 +66,6 @@ public class ProcessService {
 
     public List<Process> getVersionsByProcessKey(String processKey) {
         return repository.findAllVersionsByProcessKey(processKey);
-    }
-
-    public void delete(String processKey) {
-        repository.deleteByProcessKey(processKey);
     }
 
     private void validateUniqueOperationNames(List<Operation> operations) {

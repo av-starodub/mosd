@@ -13,8 +13,6 @@ public interface ProcessDocumentRepository extends MongoRepository<ProcessDocume
 
     List<ProcessDocument> findByProcessKeyOrderByVersionAsc(String processKey);
 
-    void deleteByProcessKey(String processKey);
-
     @Aggregation(
             pipeline = {
                 "{$sort: {processKey: 1, version: -1}}",

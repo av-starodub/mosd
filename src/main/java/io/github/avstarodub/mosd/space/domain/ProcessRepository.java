@@ -13,8 +13,6 @@ public interface ProcessRepository {
 
     List<Process> findAllVersionsByProcessKey(String processKey);
 
-    void deleteByProcessKey(String processKey);
-
     List<Process> findAllLatestVersions();
 
     List<Process> findAllLatestVersionsByType(String type);

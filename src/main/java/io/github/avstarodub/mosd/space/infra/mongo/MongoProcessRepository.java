@@ -49,9 +49,4 @@ public class MongoProcessRepository implements ProcessRepository {
                 .map(ProcessDocumentMapper::toDomain)
                 .toList();
     }
-
-    @Override
-    public void deleteByProcessKey(String processKey) {
-        repository.deleteByProcessKey(processKey);
-    }
 }
