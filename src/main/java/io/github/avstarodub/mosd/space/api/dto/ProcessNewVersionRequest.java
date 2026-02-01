@@ -6,12 +6,13 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record ProcessNewVersionRequest(
-        @NotBlank String type,
-        String description,
-        @NotBlank String volumeUnit,
+        @NotBlank @Size(max = 50) String type,
+        @Size(max = 500) String description,
+        @NotBlank @Size(max = 20) String volumeUnit,
         Integer batchVolume,
         @NotNull HandoffMode handoffMode,
         @NotEmpty @Valid List<OperationRequest> operations,

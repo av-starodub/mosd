@@ -1,6 +1,8 @@
 package io.github.avstarodub.mosd.space.api.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record ProcessTypeCreateRequest(
-        @NotBlank String type, @NotBlank String title) {}
+        @NotBlank @Size(max = 50) String type,
+        @NotBlank @Size(max = 200) String title) {}

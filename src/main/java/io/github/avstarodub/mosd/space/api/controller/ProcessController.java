@@ -62,14 +62,6 @@ public class ProcessController {
                 .toList();
     }
 
-    @GetMapping("/versions")
-    @ResponseStatus(HttpStatus.OK)
-    public List<ProcessResponse> getAllVersions() {
-        return service.getAllVersions().stream()
-                .map(ProcessApiMapper::toResponse)
-                .toList();
-    }
-
     @GetMapping("/{processKey}/versions")
     @ResponseStatus(HttpStatus.OK)
     public List<ProcessResponse> getProcessVersions(@PathVariable @NotBlank String processKey) {

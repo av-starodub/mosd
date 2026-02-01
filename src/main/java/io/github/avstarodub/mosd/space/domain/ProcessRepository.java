@@ -13,8 +13,6 @@ public interface ProcessRepository {
 
     boolean existsByType(String type);
 
-    List<Process> findAllVersions();
-
     List<Process> findAllVersionsByProcessKey(String processKey);
 
     void deleteByProcessKey(String processKey);

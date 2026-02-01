@@ -5,7 +5,6 @@ import io.github.avstarodub.mosd.space.domain.ProcessRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -33,14 +32,6 @@ public class MongoProcessRepository implements ProcessRepository {
     @Override
     public boolean existsByType(String type) {
         return repository.existsByType(type);
-    }
-
-    @Override
-    public List<Process> findAllVersions() {
-        var sort = Sort.by(Sort.Order.asc("processKey"), Sort.Order.asc("version"));
-        return repository.findAll(sort).stream()
-                .map(ProcessDocumentMapper::toDomain)
-                .toList();
     }
 
     @Override

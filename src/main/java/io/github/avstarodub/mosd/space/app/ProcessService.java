@@ -67,10 +67,6 @@ public class ProcessService {
         return paginate(sorted, filter.page(), filter.size());
     }
 
-    public List<Process> getAllVersions() {
-        return repository.findAllVersions();
-    }
-
     public List<Process> getVersionsByProcessKey(String processKey) {
         return repository.findAllVersionsByProcessKey(processKey);
     }
