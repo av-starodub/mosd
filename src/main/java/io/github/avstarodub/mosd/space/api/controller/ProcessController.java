@@ -2,7 +2,6 @@ package io.github.avstarodub.mosd.space.api.controller;
 
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessFilterRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
@@ -11,7 +10,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -56,10 +55,9 @@ public class ProcessController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<ProcessResponse> getAll(@Valid @ParameterObject ProcessFilterRequest filter) {
-        return service.getAllLatestFiltered(filter).stream()
-                .map(ProcessApiMapper::toResponse)
-                .toList();
+    public List<ProcessResponse> getAll(@RequestParam(required = false) String type) {
+        var processes = type == null ? service.getAllLatest() : service.getAllLatestByType(type);
+        return processes.stream().map(ProcessApiMapper::toResponse).toList();
     }
 
     @GetMapping("/{processKey}/versions")

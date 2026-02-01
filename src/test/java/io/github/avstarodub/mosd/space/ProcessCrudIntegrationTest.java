@@ -169,18 +169,6 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         ResultMatcher.assertResponseListOrdered(actual, expected);
     }
 
-    @Test
-    @DisplayName("Sort and paginate latest processes")
-    void sortAndPaginateProcesses() throws Exception {
-        seedProcesses();
-        var expected = JsonHelper.readFixtureList(
-                objectMapper, JsonHelper.ProcessFixtures.LIST_PAGE_RESPONSE, ProcessResponse[].class);
-
-        var actual = getProcessesPage();
-
-        ResultMatcher.assertResponseListOrdered(actual, expected);
-    }
-
     private void seedProcesses() throws Exception {
         createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
         createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST_B);
@@ -230,18 +218,6 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
     private List<ProcessResponse> getProcessesByType(String type) throws Exception {
         var result = mockMvc.perform(get("/api/v1/space/processes").param("type", type))
-                .andExpect(status().isOk())
-                .andReturn();
-        return JsonHelper.readJsonList(
-                objectMapper, result.getResponse().getContentAsString(), ProcessResponse[].class);
-    }
-
-    private List<ProcessResponse> getProcessesPage() throws Exception {
-        var result = mockMvc.perform(get("/api/v1/space/processes")
-                        .param("sortBy", "processKey")
-                        .param("sortDir", "desc")
-                        .param("page", String.valueOf(0))
-                        .param("size", String.valueOf(1)))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJsonList(

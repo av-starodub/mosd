@@ -29,8 +29,6 @@ public class JsonHelper {
 
         public static final String LIST_BY_TYPE_RESPONSE = BASE + "list-by-type-response.json";
 
-        public static final String LIST_PAGE_RESPONSE = BASE + "list-page-response.json";
-
         public static final String INVALID_DUPLICATE_OPERATION = BASE + "invalid-duplicate-operation.json";
 
         public static final String INVALID_DUPLICATE_RATE_OPTION = BASE + "invalid-duplicate-rate-option.json";
