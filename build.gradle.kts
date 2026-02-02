@@ -138,6 +138,10 @@ tasks.named<Test>("test") {
 tasks.register<Test>("integrationTest") {
     group = "verification"
     description = "Runs integration tests (JUnit @Tag(\"integration\"))"
+
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+
     useJUnitPlatform {
         includeTags("integration")
     }

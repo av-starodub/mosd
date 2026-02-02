@@ -1,5 +1,6 @@
 package io.github.avstarodub.mosd.space;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +16,7 @@ import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository
 import io.github.avstarodub.mosd.util.JsonHelper;
 import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -90,6 +92,18 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
 
         postOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST).andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("Reject operation type update via create")
+    void rejectUpdateViaCreate() throws Exception {
+        createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
+
+        var result = postOperationType(JsonHelper.OperationTypeFixtures.INVALID_UPDATE_VIA_CREATE)
+                .andExpect(status().isConflict())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).contains("rename/update is forbidden in MVP");
     }
 
     @Test

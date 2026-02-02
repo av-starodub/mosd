@@ -76,6 +76,8 @@ public class JsonHelper {
         public static final String INVALID_DUPLICATE_TIME_OPTION = BASE + "invalid-duplicate-time-option.json";
 
         public static final String INVALID_MISSING_PROCESS_TYPE = BASE + "invalid-missing-process-type.json";
+
+        public static final String INVALID_UPDATE_VIA_CREATE = BASE + "invalid-update-via-create.json";
     }
 
     public static String readFixtureJson(String path) {

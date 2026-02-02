@@ -25,6 +25,7 @@ public class OperationTypeService {
         var operationType = OperationTypeApiMapper.toDomain(request);
         validateProcessTypeExists(operationType.processType());
         validateUniqueTimeOptionKeys(operationType.defaultTimeOptions());
+        validateNoUpdateViaCreate(operationType);
         return repository.save(operationType);
     }
 
@@ -50,5 +51,27 @@ public class OperationTypeService {
                 throw new DuplicateResourceException("TimeOption", "key", key);
             }
         }
+    }
+
+    private void validateNoUpdateViaCreate(OperationType incoming) {
+        var existing = repository.findByTypeAndProcessType(incoming.type(), incoming.processType());
+        if (existing.isEmpty()) {
+            return;
+        }
+
+        if (!isSameDefinition(existing.get(), incoming)) {
+            throw new DuplicateResourceException(
+                    "OperationType",
+                    "type+processType",
+                    incoming.type() + "@" + incoming.processType() + " (rename/update is forbidden in MVP)");
+        }
+
+        throw new DuplicateResourceException(
+                "OperationType", "type+processType", incoming.type() + "@" + incoming.processType());
+    }
+
+    private boolean isSameDefinition(OperationType existing, OperationType incoming) {
+        return existing.title().equals(incoming.title())
+                && existing.defaultTimeOptions().equals(incoming.defaultTimeOptions());
     }
 }
