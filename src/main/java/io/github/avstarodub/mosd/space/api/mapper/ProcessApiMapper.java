@@ -9,10 +9,13 @@ import io.github.avstarodub.mosd.space.api.dto.RateOptionRequest;
 import io.github.avstarodub.mosd.space.api.dto.RateOptionResponse;
 import io.github.avstarodub.mosd.space.api.dto.RateRequest;
 import io.github.avstarodub.mosd.space.api.dto.RateResponse;
+import io.github.avstarodub.mosd.space.api.dto.TimeOptionRequest;
+import io.github.avstarodub.mosd.space.api.dto.TimeOptionResponse;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.Rate;
 import io.github.avstarodub.mosd.space.domain.RateOption;
+import io.github.avstarodub.mosd.space.domain.TimeOption;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 
@@ -100,14 +103,39 @@ public class ProcessApiMapper {
     }
 
     private static List<Operation> toOperations(List<OperationRequest> operations) {
-        return operations.stream()
-                .map(operation -> new Operation(operation.name().strip(), operation.executionTime()))
-                .toList();
+        return operations.stream().map(ProcessApiMapper::toOperation).toList();
+    }
+
+    private static Operation toOperation(OperationRequest operation) {
+        return new Operation(
+                normalizeOperationType(operation.operationType()),
+                operation.name().strip(),
+                operation.quantity(),
+                toTimeOptions(operation.timeOptions()));
     }
 
     private static List<OperationResponse> toOperationResponses(List<Operation> operations) {
-        return operations.stream()
-                .map(operation -> new OperationResponse(operation.name(), operation.executionTime()))
+        return operations.stream().map(ProcessApiMapper::toOperationResponse).toList();
+    }
+
+    private static OperationResponse toOperationResponse(Operation operation) {
+        return new OperationResponse(
+                operation.operationType(),
+                operation.name(),
+                operation.quantity(),
+                toTimeOptionResponses(operation.timeOptions()));
+    }
+
+    private static List<TimeOption> toTimeOptions(List<TimeOptionRequest> options) {
+        return options.stream()
+                .map(option ->
+                        new TimeOption(option.key().strip(), option.title().strip(), option.duration()))
+                .toList();
+    }
+
+    private static List<TimeOptionResponse> toTimeOptionResponses(List<TimeOption> options) {
+        return options.stream()
+                .map(option -> new TimeOptionResponse(option.key(), option.title(), option.duration()))
                 .toList();
     }
 
@@ -140,5 +168,12 @@ public class ProcessApiMapper {
             return null;
         }
         return description.strip();
+    }
+
+    private static String normalizeOperationType(String operationType) {
+        if (operationType == null) {
+            return null;
+        }
+        return operationType.strip();
     }
 }

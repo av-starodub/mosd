@@ -1,3 +1,6 @@
 package io.github.avstarodub.mosd.space.infra.mongo;
 
-public record OperationDocument(String name, long executionTime) {}
+import java.util.List;
+
+public record OperationDocument(
+        String operationType, String name, int quantity, List<TimeOptionDocument> timeOptions) {}

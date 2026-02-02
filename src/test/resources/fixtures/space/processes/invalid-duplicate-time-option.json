@@ -1,0 +1,29 @@
+{
+  "processKey": "PROC-DUP-TIME",
+  "type": "CUT",
+  "description": "Duplicate time option key",
+  "volumeUnit": "pcs",
+  "batchVolume": 50,
+  "handoffMode": "BATCHED",
+  "operations": [
+    {
+      "operationType": null,
+      "name": "op-1",
+      "quantity": 1,
+      "timeOptions": [
+        {"key": "DUP", "title": "First", "duration": 5},
+        {"key": "DUP", "title": "Second", "duration": 10}
+      ]
+    }
+  ],
+  "rateOptions": [
+    {
+      "key": "STD",
+      "title": "Standard",
+      "rate": {
+        "units": 3,
+        "minutes": 2
+      }
+    }
+  ]
+}

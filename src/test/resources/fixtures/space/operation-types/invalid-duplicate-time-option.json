@@ -1,0 +1,9 @@
+{
+  "type": "OP-X",
+  "title": "Invalid Operation Type",
+  "processType": "CUT",
+  "defaultTimeOptions": [
+    {"key": "DUP", "title": "Duplicate Key 1", "duration": 5},
+    {"key": "DUP", "title": "Duplicate Key 2", "duration": 10}
+  ]
+}

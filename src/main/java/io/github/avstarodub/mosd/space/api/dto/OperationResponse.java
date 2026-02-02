@@ -1,3 +1,6 @@
 package io.github.avstarodub.mosd.space.api.dto;
 
-public record OperationResponse(String name, long executionTime) {}
+import java.util.List;
+
+public record OperationResponse(
+        String operationType, String name, int quantity, List<TimeOptionResponse> timeOptions) {}

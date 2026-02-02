@@ -7,12 +7,20 @@
   "handoffMode": "BATCHED",
   "operations": [
     {
+      "operationType": null,
       "name": "op-1",
-      "executionTime": 5
+      "quantity": 1,
+      "timeOptions": [
+        {"key": "FAST", "title": "Fast Mode", "duration": 5}
+      ]
     },
     {
+      "operationType": null,
       "name": "op-2",
-      "executionTime": 10
+      "quantity": 1,
+      "timeOptions": [
+        {"key": "STD", "title": "Standard Mode", "duration": 10}
+      ]
     }
   ],
   "rateOptions": [

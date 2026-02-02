@@ -111,6 +111,12 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
     }
 
     @Test
+    @DisplayName("Reject duplicate time option keys within operation")
+    void uniqueTimeOptionKeys() throws Exception {
+        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION).andExpect(status().isConflict());
+    }
+
+    @Test
     @DisplayName("Reject blank operation name")
     void blankOperationName() throws Exception {
         postProcess(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION).andExpect(status().isBadRequest());

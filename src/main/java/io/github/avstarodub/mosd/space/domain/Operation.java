@@ -1,3 +1,5 @@
 package io.github.avstarodub.mosd.space.domain;
 
-public record Operation(String name, long executionTime) {}
+import java.util.List;
+
+public record Operation(String operationType, String name, int quantity, List<TimeOption> timeOptions) {}

@@ -38,6 +38,8 @@ public class JsonHelper {
         public static final String INVALID_BATCHED_MISSING_VOLUME = BASE + "invalid-batched-missing-volume.json";
 
         public static final String INVALID_FULL_ONLY_WITH_VOLUME = BASE + "invalid-full-only-with-volume.json";
+
+        public static final String INVALID_DUPLICATE_TIME_OPTION = BASE + "invalid-duplicate-time-option.json";
     }
 
     @UtilityClass
@@ -54,6 +56,26 @@ public class JsonHelper {
         public static final String WELD_RESPONSE = BASE + "weld-response.json";
 
         public static final String LIST_RESPONSE = BASE + "list-response.json";
+    }
+
+    @UtilityClass
+    public static class OperationTypeFixtures {
+
+        public static final String BASE = "fixtures/space/operation-types/";
+
+        public static final String OP_A_CREATE_REQUEST = BASE + "op-a-create-request.json";
+
+        public static final String OP_A_RESPONSE = BASE + "op-a-response.json";
+
+        public static final String OP_B_CREATE_REQUEST = BASE + "op-b-create-request.json";
+
+        public static final String OP_B_RESPONSE = BASE + "op-b-response.json";
+
+        public static final String LIST_RESPONSE = BASE + "list-response.json";
+
+        public static final String INVALID_DUPLICATE_TIME_OPTION = BASE + "invalid-duplicate-time-option.json";
+
+        public static final String INVALID_MISSING_PROCESS_TYPE = BASE + "invalid-missing-process-type.json";
     }
 
     public static String readFixtureJson(String path) {

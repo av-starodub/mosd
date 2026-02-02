@@ -1,0 +1,9 @@
+{
+  "type": "OP-A",
+  "title": "Operation Type A",
+  "processType": "CUT",
+  "defaultTimeOptions": [
+    {"key": "FAST", "title": "Fast Mode", "duration": 5},
+    {"key": "STD", "title": "Standard Mode", "duration": 10}
+  ]
+}

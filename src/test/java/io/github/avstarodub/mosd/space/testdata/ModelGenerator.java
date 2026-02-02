@@ -4,10 +4,12 @@ import static org.instancio.Select.field;
 
 import io.github.avstarodub.mosd.space.domain.HandoffMode;
 import io.github.avstarodub.mosd.space.domain.Operation;
+import io.github.avstarodub.mosd.space.domain.OperationType;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.ProcessType;
 import io.github.avstarodub.mosd.space.domain.Rate;
 import io.github.avstarodub.mosd.space.domain.RateOption;
+import io.github.avstarodub.mosd.space.domain.TimeOption;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import lombok.Getter;
@@ -23,9 +25,13 @@ public class ModelGenerator {
 
     private Model<RateOption> rateOptionModel;
 
+    private Model<TimeOption> timeOptionModel;
+
     private Model<Operation> operationModel;
 
     private Model<ProcessType> processTypeModel;
+
+    private Model<OperationType> operationTypeModel;
 
     private Model<Process> processModel;
 
@@ -33,8 +39,10 @@ public class ModelGenerator {
     private void init() {
         rateModel = buildRateModel();
         rateOptionModel = buildRateOptionModel();
+        timeOptionModel = buildTimeOptionModel();
         operationModel = buildOperationModel();
         processTypeModel = buildProcessTypeModel();
+        operationTypeModel = buildOperationTypeModel();
         processModel = buildProcessModel();
     }
 
@@ -54,10 +62,21 @@ public class ModelGenerator {
                 .toModel();
     }
 
+    private Model<TimeOption> buildTimeOptionModel() {
+        return Instancio.of(TimeOption.class)
+                .set(field(TimeOption::key), "FAST")
+                .set(field(TimeOption::title), "Fast Mode")
+                .set(field(TimeOption::duration), 5)
+                .toModel();
+    }
+
     private Model<Operation> buildOperationModel() {
+        var timeOptions = List.of(new TimeOption("FAST", "Fast Mode", 5));
         return Instancio.of(Operation.class)
+                .set(field(Operation::operationType), null)
                 .set(field(Operation::name), "op-1")
-                .set(field(Operation::executionTime), 5L)
+                .set(field(Operation::quantity), 1)
+                .set(field(Operation::timeOptions), timeOptions)
                 .toModel();
     }
 
@@ -71,8 +90,25 @@ public class ModelGenerator {
                 .toModel();
     }
 
+    private Model<OperationType> buildOperationTypeModel() {
+        var defaultTimeOptions =
+                List.of(new TimeOption("FAST", "Fast Mode", 5), new TimeOption("STD", "Standard Mode", 10));
+        return Instancio.of(OperationType.class)
+                .ignore(field(OperationType::id))
+                .ignore(field(OperationType::createdAt))
+                .ignore(field(OperationType::updatedAt))
+                .set(field(OperationType::type), "OP-A")
+                .set(field(OperationType::title), "Operation Type A")
+                .set(field(OperationType::processType), "CUT")
+                .set(field(OperationType::defaultTimeOptions), defaultTimeOptions)
+                .toModel();
+    }
+
     private Model<Process> buildProcessModel() {
-        var operations = List.of(new Operation("op-1", 5L), new Operation("op-2", 10L));
+        var timeOptions1 = List.of(new TimeOption("FAST", "Fast Mode", 5));
+        var timeOptions2 = List.of(new TimeOption("STD", "Standard Mode", 10));
+        var operations =
+                List.of(new Operation(null, "op-1", 1, timeOptions1), new Operation(null, "op-2", 1, timeOptions2));
         var rateOptions = List.of(new RateOption("STD", "Standard", new Rate(3, 2)));
         return Instancio.of(Process.class)
                 .ignore(field(Process::id))

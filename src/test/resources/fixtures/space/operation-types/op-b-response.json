@@ -1,0 +1,11 @@
+{
+  "id": null,
+  "type": "OP-B",
+  "title": "Operation Type B",
+  "processType": "CUT",
+  "defaultTimeOptions": [
+    {"key": "SLOW", "title": "Slow Mode", "duration": 20}
+  ],
+  "createdAt": null,
+  "updatedAt": null
+}

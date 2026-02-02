@@ -9,6 +9,7 @@ import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.ProcessRepository;
 import io.github.avstarodub.mosd.space.domain.RateOption;
+import io.github.avstarodub.mosd.space.domain.TimeOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +31,7 @@ public class ProcessService {
         var process = ProcessApiMapper.toDomain(request);
         validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
+        validateUniqueTimeOptionKeysInOperations(process.operations());
         validateUniqueRateOptionKeys(process.rateOptions());
         return repository.save(ProcessApiMapper.withVersion(process, 1));
     }
@@ -43,6 +45,7 @@ public class ProcessService {
         var process = ProcessApiMapper.withProcessKey(ProcessApiMapper.toDomain(request), processKey);
         validateTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
+        validateUniqueTimeOptionKeysInOperations(process.operations());
         validateUniqueRateOptionKeys(process.rateOptions());
 
         return repository.save(ProcessApiMapper.withVersion(process, latest.version() + 1));
@@ -84,6 +87,22 @@ public class ProcessService {
             var key = option.key();
             if (!seen.add(key)) {
                 throw new DuplicateResourceException("RateOption", "key", key);
+            }
+        }
+    }
+
+    private void validateUniqueTimeOptionKeysInOperations(List<Operation> operations) {
+        for (var operation : operations) {
+            validateUniqueTimeOptionKeys(operation.timeOptions());
+        }
+    }
+
+    private void validateUniqueTimeOptionKeys(List<TimeOption> options) {
+        var seen = new HashSet<String>();
+        for (var option : options) {
+            var key = option.key();
+            if (!seen.add(key)) {
+                throw new DuplicateResourceException("TimeOption", "key", key);
             }
         }
     }

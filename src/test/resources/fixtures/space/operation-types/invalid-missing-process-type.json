@@ -1,0 +1,8 @@
+{
+  "type": "OP-X",
+  "title": "Invalid Operation Type",
+  "processType": "NONEXISTENT",
+  "defaultTimeOptions": [
+    {"key": "STD", "title": "Standard Mode", "duration": 10}
+  ]
+}
