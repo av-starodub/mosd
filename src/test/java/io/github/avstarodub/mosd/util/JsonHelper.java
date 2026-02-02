@@ -80,6 +80,30 @@ public class JsonHelper {
         public static final String INVALID_UPDATE_VIA_CREATE = BASE + "invalid-update-via-create.json";
     }
 
+    @UtilityClass
+    public static class EstimateFixtures {
+
+        public static final String BASE = "fixtures/scheduler/estimate/";
+
+        public static final String SINGLE_ITEM_REQUEST = BASE + "single-item-request.json";
+
+        public static final String MULTI_ITEM_REQUEST = BASE + "multi-item-request.json";
+
+        public static final String BATCH_OVERRIDE_REQUEST = BASE + "batch-override-request.json";
+
+        public static final String INVALID_OPERATION_REQUEST = BASE + "invalid-operation-request.json";
+
+        public static final String INVALID_TIME_OPTION_REQUEST = BASE + "invalid-time-option-request.json";
+
+        public static final String INVALID_RATE_OPTION_REQUEST = BASE + "invalid-rate-option-request.json";
+
+        public static final String INVALID_VOLUME_UNIT_REQUEST = BASE + "invalid-volume-unit-request.json";
+
+        public static final String INVALID_VERSION_REQUEST = BASE + "invalid-version-request.json";
+
+        public static final String INVALID_BATCH_OVERRIDE_REQUEST = BASE + "invalid-batch-override-request.json";
+    }
+
     public static String readFixtureJson(String path) {
         try (var input = JsonHelper.class.getClassLoader().getResourceAsStream(path)) {
             if (input == null) {

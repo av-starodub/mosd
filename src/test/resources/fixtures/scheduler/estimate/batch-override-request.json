@@ -1,0 +1,23 @@
+{
+  "orderId": "ORD-003",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "batchVolumeOverride": 100,
+          "selectedRateOptionKey": "STD",
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

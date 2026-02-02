@@ -16,7 +16,6 @@ import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository
 import io.github.avstarodub.mosd.util.JsonHelper;
 import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

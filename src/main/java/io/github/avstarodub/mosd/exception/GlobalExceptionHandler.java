@@ -18,14 +18,40 @@ public class GlobalExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private static final String VALIDATION_FAILED_MESSAGE = "Validation failed";
+
+    private static final String CONSTRAINT_VIOLATION_MESSAGE = "Constraint violation";
+
+    private static final String RESOURCE_NOT_FOUND_LOG = "Resource not found";
+
+    private static final String DUPLICATE_RESOURCE_LOG = "Duplicate resource";
+
+    private static final String INVALID_ARGUMENT_LOG = "Invalid argument";
+
+    private static final String UNEXPECTED_ERROR_LOG = "Unexpected error";
+
+    private static final String UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred";
+
     private static String sanitizePath(HttpServletRequest request) {
         return HtmlUtils.htmlEscape(request.getRequestURI());
+    }
+
+    private ResponseEntity<ErrorResponse> buildValidationErrorResponse(
+            String message, java.util.List<ErrorResponse.FieldError> fieldErrors, HttpServletRequest request) {
+        LOG.warn("Validation error ({}): {} errors", message, fieldErrors.size());
+        var response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                message,
+                sanitizePath(request),
+                fieldErrors);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
             ResourceNotFoundException ex, HttpServletRequest request) {
-        LOG.warn("Resource not found: {}", ex.getMessage());
+        LOG.warn("{}: {}", RESOURCE_NOT_FOUND_LOG, ex.getMessage());
         var response = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
                 HttpStatus.NOT_FOUND.getReasonPhrase(),
@@ -36,7 +62,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({DuplicateResourceException.class, DuplicateKeyException.class, ResourceInUseException.class})
     public ResponseEntity<ErrorResponse> handleDuplicateResource(Exception ex, HttpServletRequest request) {
-        LOG.warn("Duplicate resource: {}", ex.getMessage());
+        LOG.warn("{}: {}", DUPLICATE_RESOURCE_LOG, ex.getMessage());
         var response = new ErrorResponse(
                 HttpStatus.CONFLICT.value(),
                 HttpStatus.CONFLICT.getReasonPhrase(),
@@ -51,14 +77,7 @@ public class GlobalExceptionHandler {
         var fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> new ErrorResponse.FieldError(error.getField(), error.getDefaultMessage()))
                 .toList();
-        LOG.warn("Validation failed: {} errors", fieldErrors.size());
-        var response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Validation failed",
-                sanitizePath(request),
-                fieldErrors);
-        return ResponseEntity.badRequest().body(response);
+        return buildValidationErrorResponse(VALIDATION_FAILED_MESSAGE, fieldErrors, request);
     }
 
     @ExceptionHandler(BindException.class)
@@ -66,14 +85,7 @@ public class GlobalExceptionHandler {
         var fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> new ErrorResponse.FieldError(error.getField(), error.getDefaultMessage()))
                 .toList();
-        LOG.warn("Validation failed: {} errors", fieldErrors.size());
-        var response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Validation failed",
-                sanitizePath(request),
-                fieldErrors);
-        return ResponseEntity.badRequest().body(response);
+        return buildValidationErrorResponse(VALIDATION_FAILED_MESSAGE, fieldErrors, request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -83,23 +95,28 @@ public class GlobalExceptionHandler {
                 .map(violation ->
                         new ErrorResponse.FieldError(violation.getPropertyPath().toString(), violation.getMessage()))
                 .toList();
-        LOG.warn("Constraint violation: {} errors", fieldErrors.size());
+        return buildValidationErrorResponse(CONSTRAINT_VIOLATION_MESSAGE, fieldErrors, request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex, HttpServletRequest request) {
+        LOG.warn("{}: {}", INVALID_ARGUMENT_LOG, ex.getMessage());
         var response = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Constraint violation",
-                sanitizePath(request),
-                fieldErrors);
+                ex.getMessage(),
+                sanitizePath(request));
         return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
-        LOG.error("Unexpected error", ex);
+        LOG.error(UNEXPECTED_ERROR_LOG, ex);
         var response = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "An unexpected error occurred",
+                UNEXPECTED_ERROR_MESSAGE,
                 sanitizePath(request));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

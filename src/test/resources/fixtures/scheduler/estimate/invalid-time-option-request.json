@@ -1,0 +1,22 @@
+{
+  "orderId": "ORD-ERR",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "selectedRateOptionKey": "STD",
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "NON-EXISTENT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

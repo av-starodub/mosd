@@ -35,6 +35,18 @@ public class ModelGenerator {
 
     private Model<Process> processModel;
 
+    public Process process() {
+        return Instancio.create(processModel);
+    }
+
+    public ProcessType processType() {
+        return Instancio.create(processTypeModel);
+    }
+
+    public OperationType operationType() {
+        return Instancio.create(operationTypeModel);
+    }
+
     @PostConstruct
     private void init() {
         rateModel = buildRateModel();

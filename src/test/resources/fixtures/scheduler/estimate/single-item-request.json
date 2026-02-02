@@ -1,0 +1,26 @@
+{
+  "orderId": "ORD-001",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "selectedRateOptionKey": "STD",
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            },
+            {
+              "operationName": "op-2",
+              "selectedTimeOptionKey": "STD"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

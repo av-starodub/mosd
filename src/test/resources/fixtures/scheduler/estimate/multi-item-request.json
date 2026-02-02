@@ -1,0 +1,39 @@
+{
+  "orderId": "ORD-002",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "selectedRateOptionKey": "STD",
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "externalId": "ITEM-2",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "selectedRateOptionKey": "STD",
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
