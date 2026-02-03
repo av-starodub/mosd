@@ -1,6 +1,7 @@
 package io.github.avstarodub.mosd.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,10 +14,14 @@ import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
 import io.github.avstarodub.mosd.space.testdata.ModelGenerator;
 import io.github.avstarodub.mosd.util.JsonHelper;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -97,7 +102,8 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
             seedDefaultProcess();
             var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.BATCH_OVERRIDE_REQUEST);
             // With larger batch volume, fewer batches should be created.
-            var actualNumberOfBatches = actualResponse.items().getFirst().processes().getFirst().numberOfBatches();
+            var actualNumberOfBatches =
+                    actualResponse.items().getFirst().processes().getFirst().numberOfBatches();
             assertThat(actualNumberOfBatches).isEqualTo(1);
         }
     }
@@ -106,64 +112,19 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
     @DisplayName("Validation errors")
     class ValidationErrors {
 
-        @Test
-        @DisplayName("Process not found returns 404")
-        void processNotFound() throws Exception {
-            assertEstimateStatus(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST, status().isNotFound());
+        @ParameterizedTest(name = "{0} -> {1}")
+        @MethodSource("io.github.avstarodub.mosd.scheduler.EstimateIntegrationTest#fixturesWithoutSeed")
+        @DisplayName("Reject invalid requests without seeded process")
+        void rejectWithoutSeed(String fixture, int expectedStatus) throws Exception {
+            assertEstimateStatus(fixture, status().is(expectedStatus));
         }
 
-        @Test
-        @DisplayName("Invalid operation name returns 400")
-        void invalidOperationName() throws Exception {
+        @ParameterizedTest(name = "{0} -> {1}")
+        @MethodSource("io.github.avstarodub.mosd.scheduler.EstimateIntegrationTest#fixturesWithSeed")
+        @DisplayName("Reject invalid requests with seeded process")
+        void rejectWithSeed(String fixture, int expectedStatus) throws Exception {
             seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_OPERATION_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Invalid time option key returns 400")
-        void invalidTimeOptionKey() throws Exception {
-            seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_TIME_OPTION_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Invalid rate option key returns 400")
-        void invalidRateOptionKey() throws Exception {
-            seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_RATE_OPTION_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Volume unit mismatch returns 400")
-        void volumeUnitMismatch() throws Exception {
-            seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_VOLUME_UNIT_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Non-positive process version returns 400")
-        void nonPositiveProcessVersion() throws Exception {
-            seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_VERSION_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Non-positive batch override returns 400")
-        void nonPositiveBatchOverride() throws Exception {
-            seedDefaultProcess();
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Empty items returns 400")
-        void emptyItems() throws Exception {
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_EMPTY_ITEMS_REQUEST, status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Blank order ID returns 400")
-        void blankOrderId() throws Exception {
-            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_BLANK_ORDER_ID_REQUEST, status().isBadRequest());
+            assertEstimateStatus(fixture, status().is(expectedStatus));
         }
     }
 
@@ -184,7 +145,8 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
     }
 
     private ResultActions postEstimateJson(String request) throws Exception {
-        return mockMvc.perform(post(ESTIMATE_URL).contentType(MediaType.APPLICATION_JSON).content(request));
+        return mockMvc.perform(
+                post(ESTIMATE_URL).contentType(MediaType.APPLICATION_JSON).content(request));
     }
 
     private void createProcessType() {
@@ -201,5 +163,22 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
     private void seedDefaultProcess() {
         createProcessType();
         createProcess();
+    }
+
+    private static Stream<Arguments> fixturesWithoutSeed() {
+        return Stream.of(
+                arguments(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST, 404),
+                arguments(JsonHelper.EstimateFixtures.INVALID_EMPTY_ITEMS_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_BLANK_ORDER_ID_REQUEST, 400));
+    }
+
+    private static Stream<Arguments> fixturesWithSeed() {
+        return Stream.of(
+                arguments(JsonHelper.EstimateFixtures.INVALID_OPERATION_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_TIME_OPTION_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_RATE_OPTION_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_VOLUME_UNIT_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_VERSION_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST, 400));
     }
 }

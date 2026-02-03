@@ -20,9 +20,8 @@ import io.github.avstarodub.mosd.space.domain.TimeOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import java.util.stream.Collectors;
-
+import java.util.stream.IntStream;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -129,8 +128,8 @@ class EstimateServiceTest {
         void perBatchDurationForRemainder() {
             stubProcess(PROCESS_CUT, process(new ProcessSpec(PROCESS_CUT, 1, 10, OP_CUT, TIME_OPTION_CUT, 2, 6, 5)));
             var service = createService();
-            var request = requestSingleProcess(
-                    ORDER_ID, ITEM_1, selection(PROCESS_CUT, 25, null, OP_CUT, TIME_OPTION_CUT));
+            var request =
+                    requestSingleProcess(ORDER_ID, ITEM_1, selection(PROCESS_CUT, 25, null, OP_CUT, TIME_OPTION_CUT));
 
             var actualResponse = service.estimate(request);
 
@@ -148,8 +147,8 @@ class EstimateServiceTest {
         void appliesBatchOverride() {
             stubProcess(PROCESS_CUT, process(new ProcessSpec(PROCESS_CUT, 1, 10, OP_CUT, TIME_OPTION_CUT, 2, 10, 5)));
             var service = createService();
-            var request = requestSingleProcess(
-                    ORDER_ID, ITEM_1, selection(PROCESS_CUT, 20, 25, OP_CUT, TIME_OPTION_CUT));
+            var request =
+                    requestSingleProcess(ORDER_ID, ITEM_1, selection(PROCESS_CUT, 20, 25, OP_CUT, TIME_OPTION_CUT));
 
             var actualResponse = service.estimate(request);
             var actualNumberOfBatches =
@@ -232,8 +231,8 @@ class EstimateServiceTest {
         @DisplayName("Rejects non-positive batch override")
         void rejectNonPositiveBatchOverride() {
             var service = createService();
-            var request = requestSingleProcess(
-                    ORDER_ID, ITEM_1, selection(PROCESS_CUT, 20, 0, OP_CUT, TIME_OPTION_CUT));
+            var request =
+                    requestSingleProcess(ORDER_ID, ITEM_1, selection(PROCESS_CUT, 20, 0, OP_CUT, TIME_OPTION_CUT));
             var expectedMessagePart = "Batch volume override must be > 0";
 
             assertThatThrownBy(() -> service.estimate(request))

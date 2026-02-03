@@ -1,6 +1,7 @@
 package io.github.avstarodub.mosd.space;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,10 +17,14 @@ import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository
 import io.github.avstarodub.mosd.util.JsonHelper;
 import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -97,7 +102,8 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         void uniqueTypeWithinProcessType() throws Exception {
             createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
 
-            postOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST).andExpect(status().isConflict());
+            postOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST)
+                    .andExpect(status().isConflict());
         }
 
         @Test
@@ -114,18 +120,11 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
             assertThat(actualBody).contains(expectedMessage);
         }
 
-        @Test
-        @DisplayName("Reject duplicate time option keys within operation type")
-        void uniqueTimeOptionKeys() throws Exception {
-            postOperationType(JsonHelper.OperationTypeFixtures.INVALID_DUPLICATE_TIME_OPTION)
-                    .andExpect(status().isConflict());
-        }
-
-        @Test
-        @DisplayName("Reject non-existent process type")
-        void rejectNonExistentProcessType() throws Exception {
-            postOperationType(JsonHelper.OperationTypeFixtures.INVALID_MISSING_PROCESS_TYPE)
-                    .andExpect(status().isNotFound());
+        @ParameterizedTest(name = "{0} -> {1}")
+        @MethodSource("io.github.avstarodub.mosd.space.OperationTypeCrudIntegrationTest#invalidCreateFixtures")
+        @DisplayName("Reject invalid operation type create requests")
+        void rejectInvalidCreateRequests(String fixture, int expectedStatus) throws Exception {
+            postOperationType(fixture).andExpect(status().is(expectedStatus));
         }
 
         @Test
@@ -170,5 +169,11 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         return mockMvc.perform(post("/api/v1/space/operation-types")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content));
+    }
+
+    private static Stream<Arguments> invalidCreateFixtures() {
+        return Stream.of(
+                arguments(JsonHelper.OperationTypeFixtures.INVALID_DUPLICATE_TIME_OPTION, 409),
+                arguments(JsonHelper.OperationTypeFixtures.INVALID_MISSING_PROCESS_TYPE, 404));
     }
 }

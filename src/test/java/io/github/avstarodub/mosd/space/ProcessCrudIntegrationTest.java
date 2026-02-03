@@ -1,5 +1,6 @@
 package io.github.avstarodub.mosd.space;
 
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,12 +18,15 @@ import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository
 import io.github.avstarodub.mosd.util.JsonHelper;
 import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -131,40 +135,11 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
             postProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST).andExpect(status().isConflict());
         }
 
-        @Test
-        @DisplayName("Reject duplicate operation names within process")
-        void uniqueOperationNames() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_OPERATION).andExpect(status().isConflict());
-        }
-
-        @Test
-        @DisplayName("Reject duplicate rate option keys within process")
-        void uniqueRateOptionKeys() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION).andExpect(status().isConflict());
-        }
-
-        @Test
-        @DisplayName("Reject duplicate time option keys within operation")
-        void uniqueTimeOptionKeys() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION).andExpect(status().isConflict());
-        }
-
-        @Test
-        @DisplayName("Reject blank operation name")
-        void blankOperationName() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION).andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Reject batched mode without batchVolume")
-        void batchedModeRequiresBatchVolume() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME).andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("Reject batchVolume for full-only mode")
-        void fullOnlyModeRejectsBatchVolume() throws Exception {
-            postProcess(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME).andExpect(status().isBadRequest());
+        @ParameterizedTest(name = "{0} -> {1}")
+        @MethodSource("io.github.avstarodub.mosd.space.ProcessCrudIntegrationTest#invalidCreateFixtures")
+        @DisplayName("Reject invalid process create requests")
+        void rejectInvalidCreateRequests(String fixture, int expectedStatus) throws Exception {
+            postProcess(fixture).andExpect(status().is(expectedStatus));
         }
 
         @ParameterizedTest
@@ -174,8 +149,7 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
             var processKey = "PROC-A";
             var path = "/api/v1/space/processes/{processKey}/versions/{version}";
 
-            mockMvc.perform(get(path, processKey, version))
-                    .andExpect(status().isBadRequest());
+            mockMvc.perform(get(path, processKey, version)).andExpect(status().isBadRequest());
         }
     }
 
@@ -293,5 +267,15 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
     private void assertThatJsonEquals(JsonNode actual, JsonNode expected) {
         Assertions.assertThat(actual).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> invalidCreateFixtures() {
+        return Stream.of(
+                arguments(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_OPERATION, 409),
+                arguments(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION, 409),
+                arguments(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION, 409),
+                arguments(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION, 400),
+                arguments(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME, 400),
+                arguments(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME, 400));
     }
 }
