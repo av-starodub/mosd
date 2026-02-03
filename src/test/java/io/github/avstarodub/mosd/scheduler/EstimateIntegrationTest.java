@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @IntegrationTest
 @AutoConfigureMockMvc
@@ -57,68 +58,47 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
         @Test
         @DisplayName("Single item with single process returns correct estimate")
         void singleItemSingleProcess() throws Exception {
-            createProcessType();
-            createProcess();
+            seedDefaultProcess();
+            var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST);
 
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST);
-            var result = mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isOk())
-                    .andReturn();
+            var actualTotalMinutes = actualResponse.totalMinutes();
+            assertThat(actualTotalMinutes).isPositive();
 
-            var response = objectMapper.readValue(result.getResponse().getContentAsString(), EstimateResponse.class);
+            var actualQueues = actualResponse.queues();
+            assertThat(actualQueues).isNotEmpty();
 
-            assertThat(response.orderId()).isEqualTo("ORD-001");
-            assertThat(response.totalMinutes()).isGreaterThan(0);
-            assertThat(response.items()).hasSize(1);
-            assertThat(response.items().getFirst().externalId()).isEqualTo("ITEM-1");
-            assertThat(response.queues()).isNotEmpty();
+            assertThat(actualResponse.orderId()).isEqualTo("ORD-001");
+            assertThat(actualResponse.items())
+                    .hasSize(1)
+                    .first()
+                    .extracting(ItemEstimate::externalId)
+                    .isEqualTo("ITEM-1");
         }
 
         @Test
         @DisplayName("Multiple items demonstrate conveyor effect")
         void multipleItemsConveyorEffect() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.MULTI_ITEM_REQUEST);
-            var result = mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            var response = objectMapper.readValue(result.getResponse().getContentAsString(), EstimateResponse.class);
-
-            assertThat(response.items()).hasSize(2);
+            seedDefaultProcess();
+            var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.MULTI_ITEM_REQUEST);
+            assertThat(actualResponse.items()).hasSize(2);
 
             // Verify conveyor effect: total time should be less than a sum of individual item times
-            int sumOfItemTimes = response.items().stream()
+            var actualSumOfItemTimes = actualResponse.items().stream()
                     .mapToInt(ItemEstimate::estimatedMinutes)
                     .sum();
             // Note: For a single process, the conveyor effect shows in queue scheduling
-            assertThat(response.totalMinutes()).isLessThanOrEqualTo(sumOfItemTimes);
+            var actualTotalMinutes = actualResponse.totalMinutes();
+            assertThat(actualTotalMinutes).isLessThanOrEqualTo(actualSumOfItemTimes);
         }
 
         @Test
         @DisplayName("Batch volume override affects calculation")
         void batchVolumeOverride() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.BATCH_OVERRIDE_REQUEST);
-            var result = mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isOk())
-                    .andReturn();
-
-            var response = objectMapper.readValue(result.getResponse().getContentAsString(), EstimateResponse.class);
-
-            // With larger batch volume, fewer batches should be created
-            var processEstimate = response.items().getFirst().processes().getFirst();
-            assertThat(processEstimate.numberOfBatches()).isEqualTo(1);
+            seedDefaultProcess();
+            var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.BATCH_OVERRIDE_REQUEST);
+            // With larger batch volume, fewer batches should be created.
+            var actualNumberOfBatches = actualResponse.items().getFirst().processes().getFirst().numberOfBatches();
+            assertThat(actualNumberOfBatches).isEqualTo(1);
         }
     }
 
@@ -129,123 +109,82 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
         @Test
         @DisplayName("Process not found returns 404")
         void processNotFound() throws Exception {
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isNotFound());
+            assertEstimateStatus(JsonHelper.EstimateFixtures.SINGLE_ITEM_REQUEST, status().isNotFound());
         }
 
         @Test
         @DisplayName("Invalid operation name returns 400")
         void invalidOperationName() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_OPERATION_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_OPERATION_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Invalid time option key returns 400")
         void invalidTimeOptionKey() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_TIME_OPTION_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_TIME_OPTION_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Invalid rate option key returns 400")
         void invalidRateOptionKey() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_RATE_OPTION_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_RATE_OPTION_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Volume unit mismatch returns 400")
         void volumeUnitMismatch() throws Exception {
-            createProcessType();
-            createProcess();
-
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_VOLUME_UNIT_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_VOLUME_UNIT_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Non-positive process version returns 400")
         void nonPositiveProcessVersion() throws Exception {
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_VERSION_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_VERSION_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Non-positive batch override returns 400")
         void nonPositiveBatchOverride() throws Exception {
-            var request = JsonHelper.readFixtureJson(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST);
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            seedDefaultProcess();
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Empty items returns 400")
         void emptyItems() throws Exception {
-            var request = """
-                    {
-                      "orderId": "ORD-001",
-                      "items": []
-                    }
-                    """;
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_EMPTY_ITEMS_REQUEST, status().isBadRequest());
         }
 
         @Test
         @DisplayName("Blank order ID returns 400")
         void blankOrderId() throws Exception {
-            var request = """
-                    {
-                      "orderId": "",
-                      "items": [{"externalId": "ITEM-1", "processSelections": []}]
-                    }
-                    """;
-
-            mockMvc.perform(post(ESTIMATE_URL)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(request))
-                    .andExpect(status().isBadRequest());
+            assertEstimateStatus(JsonHelper.EstimateFixtures.INVALID_BLANK_ORDER_ID_REQUEST, status().isBadRequest());
         }
+    }
+
+    private EstimateResponse postEstimateSuccess(String fixture) throws Exception {
+        var result = postEstimateFixture(fixture).andExpect(status().isOk()).andReturn();
+        var responseJson = result.getResponse().getContentAsString();
+        return objectMapper.readValue(responseJson, EstimateResponse.class);
+    }
+
+    private void assertEstimateStatus(String fixture, org.springframework.test.web.servlet.ResultMatcher matcher)
+            throws Exception {
+        postEstimateFixture(fixture).andExpect(matcher);
+    }
+
+    private ResultActions postEstimateFixture(String fixture) throws Exception {
+        var request = JsonHelper.readFixtureJson(fixture);
+        return postEstimateJson(request);
+    }
+
+    private ResultActions postEstimateJson(String request) throws Exception {
+        return mockMvc.perform(post(ESTIMATE_URL).contentType(MediaType.APPLICATION_JSON).content(request));
     }
 
     private void createProcessType() {
@@ -257,5 +196,10 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
     private void createProcess() {
         var process = modelGenerator.process();
         processRepository.save(io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentMapper.toDocument(process));
+    }
+
+    private void seedDefaultProcess() {
+        createProcessType();
+        createProcess();
     }
 }

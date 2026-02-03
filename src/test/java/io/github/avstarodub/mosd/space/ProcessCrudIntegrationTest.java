@@ -20,7 +20,10 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -51,122 +54,129 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         saveProcessType(JsonHelper.ProcessTypeFixtures.WELD_REQUEST);
     }
 
-    @Test
-    @DisplayName("Create process persists in repository")
-    void createProcessPersists() throws Exception {
-        var expected =
-                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+    @Nested
+    @DisplayName("Successful requests")
+    class SuccessfulRequests {
 
-        var actual = createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        @Test
+        @DisplayName("Create process persists in repository")
+        void createProcessPersists() throws Exception {
+            var expected = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+            var actual = createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
 
-        ResultMatcher.assertResponse(actual, expected);
-        assertStoredProcess(expected, actual);
+            ResultMatcher.assertResponse(actual, expected);
+            assertStoredProcess(expected, actual);
+        }
+
+        @Test
+        @DisplayName("Get latest process by key returns stored data")
+        void getLatestProcessByKey() throws Exception {
+            createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+            var expected = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+            var actual = getProcess(expected.processKey());
+
+            ResultMatcher.assertResponse(actual, expected);
+        }
+
+        @Test
+        @DisplayName("Create new process version persists changes")
+        void createProcessVersionPersistsChanges() throws Exception {
+            createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+            var base = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+            var expected = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.ProcessFixtures.CREATE_VERSION_RESPONSE, ProcessResponse.class);
+            var actual = createVersionFromFixture(base.processKey());
+
+            ResultMatcher.assertResponse(actual, expected);
+            assertStoredLatestVersion(expected);
+        }
+
+        @Test
+        @DisplayName("List all processes")
+        void getAllProcesses() throws Exception {
+            seedProcessesWithVersion();
+            var expected = JsonHelper.readFixtureList(
+                    objectMapper, JsonHelper.ProcessFixtures.LIST_RESPONSE, ProcessResponse[].class);
+            var actual = getProcesses();
+
+            ResultMatcher.assertResponseListOrdered(actual, expected);
+        }
+
+        @Test
+        @DisplayName("Filter latest processes by type")
+        void getAllProcessesByType() throws Exception {
+            seedProcessesWithVersion();
+            var request = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+            var expected = JsonHelper.readFixtureList(
+                    objectMapper, JsonHelper.ProcessFixtures.LIST_BY_TYPE_RESPONSE, ProcessResponse[].class);
+            var actual = getProcessesByType(request.type());
+
+            ResultMatcher.assertResponseListOrdered(actual, expected);
+        }
     }
 
-    @Test
-    @DisplayName("Get latest process by key returns stored data")
-    void getLatestProcessByKey() throws Exception {
-        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
-        var expected =
-                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
+    @Nested
+    @DisplayName("Validation errors")
+    class ValidationErrors {
 
-        var actual = getProcess(expected.processKey());
+        @Test
+        @DisplayName("Reject duplicate process key")
+        void uniqueProcessKey() throws Exception {
+            createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
 
-        ResultMatcher.assertResponse(actual, expected);
-    }
+            postProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST).andExpect(status().isConflict());
+        }
 
-    @Test
-    @DisplayName("Create new process version persists changes")
-    void createProcessVersionPersistsChanges() throws Exception {
-        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
-        var base =
-                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
-        var expected = JsonHelper.readFixture(
-                objectMapper, JsonHelper.ProcessFixtures.CREATE_VERSION_RESPONSE, ProcessResponse.class);
+        @Test
+        @DisplayName("Reject duplicate operation names within process")
+        void uniqueOperationNames() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_OPERATION).andExpect(status().isConflict());
+        }
 
-        var actual = createVersionFromFixture(base.processKey());
+        @Test
+        @DisplayName("Reject duplicate rate option keys within process")
+        void uniqueRateOptionKeys() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION).andExpect(status().isConflict());
+        }
 
-        ResultMatcher.assertResponse(actual, expected);
-        assertStoredLatestVersion(expected);
-    }
+        @Test
+        @DisplayName("Reject duplicate time option keys within operation")
+        void uniqueTimeOptionKeys() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION).andExpect(status().isConflict());
+        }
 
-    @Test
-    @DisplayName("Reject duplicate process key")
-    void uniqueProcessKey() throws Exception {
-        createProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST);
+        @Test
+        @DisplayName("Reject blank operation name")
+        void blankOperationName() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION).andExpect(status().isBadRequest());
+        }
 
-        postProcess(JsonHelper.ProcessFixtures.CREATE_REQUEST).andExpect(status().isConflict());
-    }
+        @Test
+        @DisplayName("Reject batched mode without batchVolume")
+        void batchedModeRequiresBatchVolume() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME).andExpect(status().isBadRequest());
+        }
 
-    @Test
-    @DisplayName("Reject duplicate operation names within process")
-    void uniqueOperationNames() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_OPERATION).andExpect(status().isConflict());
-    }
+        @Test
+        @DisplayName("Reject batchVolume for full-only mode")
+        void fullOnlyModeRejectsBatchVolume() throws Exception {
+            postProcess(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME).andExpect(status().isBadRequest());
+        }
 
-    @Test
-    @DisplayName("Reject duplicate rate option keys within process")
-    void uniqueRateOptionKeys() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION).andExpect(status().isConflict());
-    }
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        @DisplayName("Reject non-positive version number")
+        void rejectNonPositiveVersion(int version) throws Exception {
+            var processKey = "PROC-A";
+            var path = "/api/v1/space/processes/{processKey}/versions/{version}";
 
-    @Test
-    @DisplayName("Reject duplicate time option keys within operation")
-    void uniqueTimeOptionKeys() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION).andExpect(status().isConflict());
-    }
-
-    @Test
-    @DisplayName("Reject blank operation name")
-    void blankOperationName() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Reject batched mode without batchVolume")
-    void batchedModeRequiresBatchVolume() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Reject batchVolume for full-only mode")
-    void fullOnlyModeRejectsBatchVolume() throws Exception {
-        postProcess(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("List all processes")
-    void getAllProcesses() throws Exception {
-        seedProcessesWithVersion();
-        var expected = JsonHelper.readFixtureList(
-                objectMapper, JsonHelper.ProcessFixtures.LIST_RESPONSE, ProcessResponse[].class);
-
-        var actual = getProcesses();
-
-        ResultMatcher.assertResponseListOrdered(actual, expected);
-    }
-
-    @Test
-    @DisplayName("Filter latest processes by type")
-    void getAllProcessesByType() throws Exception {
-        seedProcessesWithVersion();
-        var request =
-                JsonHelper.readFixture(objectMapper, JsonHelper.ProcessFixtures.CREATE_RESPONSE, ProcessResponse.class);
-        var expected = JsonHelper.readFixtureList(
-                objectMapper, JsonHelper.ProcessFixtures.LIST_BY_TYPE_RESPONSE, ProcessResponse[].class);
-
-        var actual = getProcessesByType(request.type());
-
-        ResultMatcher.assertResponseListOrdered(actual, expected);
-    }
-
-    @Test
-    @DisplayName("Reject non-positive version number")
-    void rejectNonPositiveVersion() throws Exception {
-        mockMvc.perform(get("/api/v1/space/processes/{processKey}/versions/{version}", "PROC-A", 0))
-                .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/space/processes/{processKey}/versions/{version}", "PROC-A", -1))
-                .andExpect(status().isBadRequest());
+            mockMvc.perform(get(path, processKey, version))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
     private void seedProcesses() throws Exception {

@@ -18,6 +18,7 @@ import io.github.avstarodub.mosd.util.ResultMatcher;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -49,82 +50,91 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         saveProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST);
     }
 
-    @Test
-    @DisplayName("Create operation type persists in repository")
-    void createOperationTypePersists() throws Exception {
-        var expected = JsonHelper.readFixture(
-                objectMapper, JsonHelper.OperationTypeFixtures.OP_A_RESPONSE, OperationTypeResponse.class);
+    @Nested
+    @DisplayName("Successful requests")
+    class SuccessfulRequests {
 
-        var actual = createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
+        @Test
+        @DisplayName("Create operation type persists in repository")
+        void createOperationTypePersists() throws Exception {
+            var expected = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.OperationTypeFixtures.OP_A_RESPONSE, OperationTypeResponse.class);
+            var actual = createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
 
-        ResultMatcher.assertResponse(actual, expected);
+            ResultMatcher.assertResponse(actual, expected);
+        }
+
+        @Test
+        @DisplayName("Get operation type by type and processType returns stored data")
+        void getOperationTypeByTypeAndProcessType() throws Exception {
+            createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
+            var expected = JsonHelper.readFixture(
+                    objectMapper, JsonHelper.OperationTypeFixtures.OP_A_RESPONSE, OperationTypeResponse.class);
+            var actual = getOperationType(expected.type(), expected.processType());
+
+            ResultMatcher.assertResponse(actual, expected);
+        }
+
+        @Test
+        @DisplayName("List all operation types by processType")
+        void getAllOperationTypesByProcessType() throws Exception {
+            createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
+            createOperationType(JsonHelper.OperationTypeFixtures.OP_B_CREATE_REQUEST);
+            var expected = JsonHelper.readFixtureList(
+                    objectMapper, JsonHelper.OperationTypeFixtures.LIST_RESPONSE, OperationTypeResponse[].class);
+            var actual = getOperationTypesByProcessType("CUT");
+
+            ResultMatcher.assertResponseListOrdered(actual, expected);
+        }
     }
 
-    @Test
-    @DisplayName("Get operation type by type and processType returns stored data")
-    void getOperationTypeByTypeAndProcessType() throws Exception {
-        createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
-        var expected = JsonHelper.readFixture(
-                objectMapper, JsonHelper.OperationTypeFixtures.OP_A_RESPONSE, OperationTypeResponse.class);
+    @Nested
+    @DisplayName("Validation errors")
+    class ValidationErrors {
 
-        var actual = getOperationType(expected.type(), expected.processType());
+        @Test
+        @DisplayName("Reject duplicate type within processType")
+        void uniqueTypeWithinProcessType() throws Exception {
+            createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
 
-        ResultMatcher.assertResponse(actual, expected);
-    }
+            postOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST).andExpect(status().isConflict());
+        }
 
-    @Test
-    @DisplayName("List all operation types by processType")
-    void getAllOperationTypesByProcessType() throws Exception {
-        createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
-        createOperationType(JsonHelper.OperationTypeFixtures.OP_B_CREATE_REQUEST);
-        var expected = JsonHelper.readFixtureList(
-                objectMapper, JsonHelper.OperationTypeFixtures.LIST_RESPONSE, OperationTypeResponse[].class);
+        @Test
+        @DisplayName("Reject operation type update via create")
+        void rejectUpdateViaCreate() throws Exception {
+            createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
 
-        var actual = getOperationTypesByProcessType("CUT");
+            var result = postOperationType(JsonHelper.OperationTypeFixtures.INVALID_UPDATE_VIA_CREATE)
+                    .andExpect(status().isConflict())
+                    .andReturn();
 
-        ResultMatcher.assertResponseListOrdered(actual, expected);
-    }
+            var actualBody = result.getResponse().getContentAsString();
+            var expectedMessage = "rename/update is forbidden in MVP";
+            assertThat(actualBody).contains(expectedMessage);
+        }
 
-    @Test
-    @DisplayName("Reject duplicate type within processType")
-    void uniqueTypeWithinProcessType() throws Exception {
-        createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
+        @Test
+        @DisplayName("Reject duplicate time option keys within operation type")
+        void uniqueTimeOptionKeys() throws Exception {
+            postOperationType(JsonHelper.OperationTypeFixtures.INVALID_DUPLICATE_TIME_OPTION)
+                    .andExpect(status().isConflict());
+        }
 
-        postOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST).andExpect(status().isConflict());
-    }
+        @Test
+        @DisplayName("Reject non-existent process type")
+        void rejectNonExistentProcessType() throws Exception {
+            postOperationType(JsonHelper.OperationTypeFixtures.INVALID_MISSING_PROCESS_TYPE)
+                    .andExpect(status().isNotFound());
+        }
 
-    @Test
-    @DisplayName("Reject operation type update via create")
-    void rejectUpdateViaCreate() throws Exception {
-        createOperationType(JsonHelper.OperationTypeFixtures.OP_A_CREATE_REQUEST);
-
-        var result = postOperationType(JsonHelper.OperationTypeFixtures.INVALID_UPDATE_VIA_CREATE)
-                .andExpect(status().isConflict())
-                .andReturn();
-
-        assertThat(result.getResponse().getContentAsString()).contains("rename/update is forbidden in MVP");
-    }
-
-    @Test
-    @DisplayName("Reject duplicate time option keys within operation type")
-    void uniqueTimeOptionKeys() throws Exception {
-        postOperationType(JsonHelper.OperationTypeFixtures.INVALID_DUPLICATE_TIME_OPTION)
-                .andExpect(status().isConflict());
-    }
-
-    @Test
-    @DisplayName("Reject non-existent process type")
-    void rejectNonExistentProcessType() throws Exception {
-        postOperationType(JsonHelper.OperationTypeFixtures.INVALID_MISSING_PROCESS_TYPE)
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("Return 404 when operation type not found")
-    void notFoundWhenOperationTypeDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/v1/space/operation-types/{type}", "NONEXISTENT")
-                        .param("processType", "CUT"))
-                .andExpect(status().isNotFound());
+        @Test
+        @DisplayName("Return 404 when operation type not found")
+        void notFoundWhenOperationTypeDoesNotExist() throws Exception {
+            mockMvc.perform(get("/api/v1/space/operation-types/{type}", "NONEXISTENT")
+                            .param("processType", "CUT"))
+                    .andExpect(status().isNotFound());
+        }
     }
 
     private void saveProcessType(String fixture) {

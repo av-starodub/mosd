@@ -18,6 +18,7 @@ import io.github.avstarodub.mosd.space.domain.TimeOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,14 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EstimateService {
+
+    private static final Comparator<CompletionEvent> COMPLETION_EVENT_ORDER = Comparator.comparingInt(
+                    CompletionEvent::endMinute)
+            .thenComparingInt(CompletionEvent::itemOrder)
+            .thenComparingInt(CompletionEvent::batchNumber)
+            .thenComparingInt(CompletionEvent::processIndex)
+            .thenComparing(CompletionEvent::processKey)
+            .thenComparing(CompletionEvent::itemExternalId);
 
     private final ProcessProvider processProvider;
 
@@ -45,14 +54,20 @@ public class EstimateService {
     }
 
     private void processItemRequest(SimulationContext context, ItemRequest itemRequest) {
-        var itemData = new ItemData(itemRequest.externalId(), new ArrayList<>());
+        int itemOrder = context.getItems().size();
+        var itemData = new ItemData(itemOrder, itemRequest.externalId(), new ArrayList<>());
         context.getItems().add(itemData);
+        context.getItemsByOrder().put(itemOrder, itemData);
 
         for (int i = 0; i < itemRequest.processSelections().size(); i++) {
             var selection = itemRequest.processSelections().get(i);
             var processData = validateAndBuildProcessData(selection);
             itemData.processes.add(processData);
-            createBatchesForProcess(context, itemRequest.externalId(), i, processData);
+            ensureProcessStructures(context, processData.processKey());
+        }
+
+        if (!itemData.processes().isEmpty()) {
+            createInitialBatches(context, itemData);
         }
     }
 
@@ -135,17 +150,18 @@ public class EstimateService {
                 operations.stream().mapToInt(OperationData::durationMinutes).sum();
         int batchVolume = determineBatchVolume(selection, process);
         int numberOfBatches = (int) Math.ceil((double) selection.volume() / batchVolume);
-        int actualBatchVolume = Math.min(batchVolume, selection.volume());
-        int rateMinutes = calculateRateMinutes(actualBatchVolume, rateOption);
-        int minutesPerBatch = operationsMinutes + rateMinutes;
+        var batchDurations = buildBatchDurations(selection.volume(), batchVolume, operationsMinutes, rateOption);
+        int fullBatchRateMinutes = calculateRateMinutes(Math.min(batchVolume, selection.volume()), rateOption);
+        int fullBatchMinutes = operationsMinutes + fullBatchRateMinutes;
 
         return new ProcessData(
                 selection.processKey(),
                 process.version(),
                 numberOfBatches,
-                minutesPerBatch,
+                fullBatchMinutes,
                 operationsMinutes,
-                rateMinutes,
+                fullBatchRateMinutes,
+                batchDurations,
                 operations);
     }
 
@@ -165,21 +181,31 @@ public class EstimateService {
         return batches * rate.minutes();
     }
 
-    private void createBatchesForProcess(
-            SimulationContext context, String itemExternalId, int processIndex, ProcessData processData) {
-        var processKey = processData.processKey();
-        context.getProcessQueues().putIfAbsent(processKey, new LinkedList<>());
-        context.getScheduledBatches().putIfAbsent(processKey, new ArrayList<>());
-        context.getProcessAvailableAt().putIfAbsent(processKey, 0);
+    private List<Integer> buildBatchDurations(
+            int totalVolume, int batchVolume, int operationsMinutes, RateOption rateOption) {
+        var durations = new ArrayList<Integer>();
+        int processed = 0;
+        while (processed < totalVolume) {
+            int currentBatchVolume = Math.min(batchVolume, totalVolume - processed);
+            int rateMinutes = calculateRateMinutes(currentBatchVolume, rateOption);
+            durations.add(operationsMinutes + rateMinutes);
+            processed += currentBatchVolume;
+        }
+        return durations;
+    }
 
-        for (int batchNum = 1; batchNum <= processData.numberOfBatches(); batchNum++) {
+    private void createInitialBatches(SimulationContext context, ItemData itemData) {
+        var firstProcess = itemData.processes().getFirst();
+        for (int batchNum = 1; batchNum <= firstProcess.numberOfBatches(); batchNum++) {
             var batch = new PendingBatch(
-                    itemExternalId, batchNum, processIndex, processKey, processData.minutesPerBatch(), 0);
-            if (processIndex == 0) {
-                context.getProcessQueues().get(processKey).add(batch);
-            } else {
-                context.getWaitingForPrevious().add(batch);
-            }
+                    itemData.itemOrder(),
+                    itemData.externalId(),
+                    batchNum,
+                    0,
+                    firstProcess.processKey(),
+                    firstProcess.durationForBatch(batchNum),
+                    0);
+            enqueueBatch(context, batch);
         }
     }
 
@@ -193,40 +219,47 @@ public class EstimateService {
     }
 
     private void startInitialBatches(SimulationContext context) {
-        for (var processKey : context.getProcessQueues().keySet()) {
+        for (var processKey :
+                context.getProcessQueues().keySet().stream().sorted().toList()) {
             tryStartNextBatch(context, processKey);
         }
     }
 
     private void processCompletionEvent(SimulationContext context, CompletionEvent event) {
-        context.getProcessAvailableAt().put(event.processKey(), event.endMinute());
-        context.getBatchEndTimes().put(batchKey(event), event.endMinute());
-
-        moveReadyBatchesToQueues(context, event);
+        context.getProcessAvailableAt().merge(event.processKey(), event.endMinute(), Math::max);
+        moveBatchToNextProcess(context, event);
         tryStartNextBatch(context, event.processKey());
     }
 
-    private void moveReadyBatchesToQueues(SimulationContext context, CompletionEvent event) {
-        var iterator = context.getWaitingForPrevious().iterator();
-        while (iterator.hasNext()) {
-            var waiting = iterator.next();
-            if (isPreviousBatchCompleted(waiting, event)) {
-                waiting = waiting.withReadyAt(event.endMinute());
-                context.getProcessQueues().get(waiting.processKey()).add(waiting);
-                iterator.remove();
-                tryStartNextBatch(context, waiting.processKey());
-            }
+    private void moveBatchToNextProcess(SimulationContext context, CompletionEvent event) {
+        var itemData = context.getItemsByOrder().get(event.itemOrder());
+        int nextProcessIndex = event.processIndex() + 1;
+        if (nextProcessIndex >= itemData.processes().size()) {
+            return;
         }
+
+        var nextProcess = itemData.processes().get(nextProcessIndex);
+        var nextBatch = new PendingBatch(
+                event.itemOrder(),
+                event.itemExternalId(),
+                event.batchNumber(),
+                nextProcessIndex,
+                nextProcess.processKey(),
+                nextProcess.durationForBatch(event.batchNumber()),
+                event.endMinute());
+        enqueueBatch(context, nextBatch);
+        tryStartNextBatch(context, nextProcess.processKey());
     }
 
-    private boolean isPreviousBatchCompleted(PendingBatch waiting, CompletionEvent event) {
-        if (!waiting.itemExternalId().equals(event.itemExternalId())) {
-            return false;
-        }
-        if (waiting.batchNumber() != event.batchNumber()) {
-            return false;
-        }
-        return waiting.processIndex() == event.processIndex() + 1;
+    private void ensureProcessStructures(SimulationContext context, String processKey) {
+        context.getProcessQueues().putIfAbsent(processKey, new LinkedList<>());
+        context.getScheduledBatches().putIfAbsent(processKey, new ArrayList<>());
+        context.getProcessAvailableAt().putIfAbsent(processKey, 0);
+    }
+
+    private void enqueueBatch(SimulationContext context, PendingBatch batch) {
+        ensureProcessStructures(context, batch.processKey());
+        context.getProcessQueues().get(batch.processKey()).add(batch);
     }
 
     private void tryStartNextBatch(SimulationContext context, String processKey) {
@@ -239,19 +272,19 @@ public class EstimateService {
         int availableAt = context.getProcessAvailableAt().get(processKey);
         int startAt = Math.max(availableAt, batch.readyAt());
         int endAt = startAt + batch.durationMinutes();
-
+        context.getProcessAvailableAt().put(processKey, endAt);
         context.getScheduledBatches()
                 .get(processKey)
                 .add(new ScheduledBatch(
                         batch.itemExternalId(), batch.batchNumber(), startAt, endAt, batch.durationMinutes()));
-
         context.getEvents()
                 .add(new CompletionEvent(
-                        endAt, batch.itemExternalId(), batch.batchNumber(), batch.processIndex(), processKey));
-    }
-
-    private String batchKey(CompletionEvent event) {
-        return event.itemExternalId() + ":" + event.batchNumber() + ":" + event.processIndex();
+                        endAt,
+                        batch.itemOrder(),
+                        batch.itemExternalId(),
+                        batch.batchNumber(),
+                        batch.processIndex(),
+                        processKey));
     }
 
     private EstimateResponse buildResponse(SimulationContext context) {
@@ -301,7 +334,8 @@ public class EstimateService {
         for (var op : data.operations()) {
             operations.add(new OperationEstimate(op.operationName(), op.timeOptionKey(), op.durationMinutes()));
         }
-        int estimatedMinutes = data.numberOfBatches() * data.minutesPerBatch();
+        int estimatedMinutes =
+                data.batchDurations().stream().mapToInt(Integer::intValue).sum();
         return new ProcessEstimate(
                 data.processKey(),
                 data.version(),
@@ -315,13 +349,14 @@ public class EstimateService {
 
     private List<QueueEstimate> buildQueueEstimates(SimulationContext context) {
         var queues = new ArrayList<QueueEstimate>();
-        for (var entry : context.getScheduledBatches().entrySet()) {
-            var batches = entry.getValue().stream()
+        for (var processKey :
+                context.getScheduledBatches().keySet().stream().sorted().toList()) {
+            var batches = context.getScheduledBatches().get(processKey).stream()
                     .sorted(Comparator.comparingInt(ScheduledBatch::startMinute))
                     .toList();
             int totalMinutes =
                     batches.stream().mapToInt(ScheduledBatch::endMinute).max().orElse(0);
-            queues.add(new QueueEstimate(entry.getKey(), totalMinutes, batches));
+            queues.add(new QueueEstimate(processKey, totalMinutes, batches));
         }
         return queues;
     }
@@ -334,25 +369,22 @@ public class EstimateService {
 
         private final List<ItemData> items = new ArrayList<>();
 
+        private final Map<Integer, ItemData> itemsByOrder = new LinkedHashMap<>();
+
         private final Map<String, Queue<PendingBatch>> processQueues = new HashMap<>();
 
         private final Map<String, Integer> processAvailableAt = new HashMap<>();
 
         private final Map<String, List<ScheduledBatch>> scheduledBatches = new HashMap<>();
 
-        private final List<PendingBatch> waitingForPrevious = new ArrayList<>();
-
-        private final Map<String, Integer> batchEndTimes = new HashMap<>();
-
-        private final PriorityQueue<CompletionEvent> events =
-                new PriorityQueue<>(Comparator.comparingInt(CompletionEvent::endMinute));
+        private final PriorityQueue<CompletionEvent> events = new PriorityQueue<>(COMPLETION_EVENT_ORDER);
 
         SimulationContext(String orderId) {
             this.orderId = orderId;
         }
     }
 
-    private record ItemData(String externalId, List<ProcessData> processes) {}
+    private record ItemData(int itemOrder, String externalId, List<ProcessData> processes) {}
 
     private record ProcessData(
             String processKey,
@@ -361,22 +393,29 @@ public class EstimateService {
             int minutesPerBatch,
             int operationsMinutes,
             int rateMinutes,
-            List<OperationData> operations) {}
+            List<Integer> batchDurations,
+            List<OperationData> operations) {
+        int durationForBatch(int batchNumber) {
+            return batchDurations.get(batchNumber - 1);
+        }
+    }
 
     private record OperationData(String operationName, String timeOptionKey, int durationMinutes) {}
 
     private record PendingBatch(
+            int itemOrder,
             String itemExternalId,
             int batchNumber,
             int processIndex,
             String processKey,
             int durationMinutes,
-            int readyAt) {
-        PendingBatch withReadyAt(int newReadyAt) {
-            return new PendingBatch(itemExternalId, batchNumber, processIndex, processKey, durationMinutes, newReadyAt);
-        }
-    }
+            int readyAt) {}
 
     private record CompletionEvent(
-            int endMinute, String itemExternalId, int batchNumber, int processIndex, String processKey) {}
+            int endMinute,
+            int itemOrder,
+            String itemExternalId,
+            int batchNumber,
+            int processIndex,
+            String processKey) {}
 }

@@ -102,6 +102,10 @@ public class JsonHelper {
         public static final String INVALID_VERSION_REQUEST = BASE + "invalid-version-request.json";
 
         public static final String INVALID_BATCH_OVERRIDE_REQUEST = BASE + "invalid-batch-override-request.json";
+
+        public static final String INVALID_EMPTY_ITEMS_REQUEST = BASE + "invalid-empty-items-request.json";
+
+        public static final String INVALID_BLANK_ORDER_ID_REQUEST = BASE + "invalid-blank-order-id-request.json";
     }
 
     public static String readFixtureJson(String path) {
