@@ -1,5 +1,6 @@
-package io.github.avstarodub.mosd.space.api.dto;
+package io.github.avstarodub.mosd.space.api.dto.operationtype;
 
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

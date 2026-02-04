@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.api.dto;
+package io.github.avstarodub.mosd.space.api.dto.processtype;
 
 import java.time.Instant;
 

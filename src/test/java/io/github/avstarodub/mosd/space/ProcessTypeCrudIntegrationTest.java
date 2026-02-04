@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessTypeResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.processtype.ProcessTypeResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.infra.mongo.process.ProcessDocumentMapper;

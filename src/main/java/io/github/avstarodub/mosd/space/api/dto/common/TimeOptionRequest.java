@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.api.dto;
+package io.github.avstarodub.mosd.space.api.dto.common;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

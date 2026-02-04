@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.api.dto;
+package io.github.avstarodub.mosd.space.api.dto.process;
 
 import jakarta.validation.constraints.Positive;
 

@@ -1,9 +1,9 @@
 package io.github.avstarodub.mosd.space.api.controller;
 
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
-import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessNewVersionRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
 import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.app.ProcessService;

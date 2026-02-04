@@ -1,16 +1,16 @@
 package io.github.avstarodub.mosd.space.api.mapper;
 
-import io.github.avstarodub.mosd.space.api.dto.OperationRequest;
-import io.github.avstarodub.mosd.space.api.dto.OperationResponse;
-import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
-import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
-import io.github.avstarodub.mosd.space.api.dto.RateOptionRequest;
-import io.github.avstarodub.mosd.space.api.dto.RateOptionResponse;
-import io.github.avstarodub.mosd.space.api.dto.RateRequest;
-import io.github.avstarodub.mosd.space.api.dto.RateResponse;
-import io.github.avstarodub.mosd.space.api.dto.TimeOptionRequest;
-import io.github.avstarodub.mosd.space.api.dto.TimeOptionResponse;
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionRequest;
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.OperationRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.OperationResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessNewVersionRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.ProcessResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.RateOptionRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.RateOptionResponse;
+import io.github.avstarodub.mosd.space.api.dto.process.RateRequest;
+import io.github.avstarodub.mosd.space.api.dto.process.RateResponse;
 import io.github.avstarodub.mosd.space.domain.process.Operation;
 import io.github.avstarodub.mosd.space.domain.process.Process;
 import io.github.avstarodub.mosd.space.domain.process.Rate;

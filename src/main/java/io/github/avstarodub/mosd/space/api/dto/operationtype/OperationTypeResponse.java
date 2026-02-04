@@ -1,5 +1,6 @@
-package io.github.avstarodub.mosd.space.api.dto;
+package io.github.avstarodub.mosd.space.api.dto.operationtype;
 
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionResponse;
 import java.time.Instant;
 import java.util.List;
 

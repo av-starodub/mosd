@@ -1,9 +1,9 @@
 package io.github.avstarodub.mosd.space.api.mapper;
 
-import io.github.avstarodub.mosd.space.api.dto.OperationTypeCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.OperationTypeResponse;
-import io.github.avstarodub.mosd.space.api.dto.TimeOptionRequest;
-import io.github.avstarodub.mosd.space.api.dto.TimeOptionResponse;
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionRequest;
+import io.github.avstarodub.mosd.space.api.dto.common.TimeOptionResponse;
+import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeResponse;
 import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
 import io.github.avstarodub.mosd.space.domain.process.TimeOption;
 import java.util.List;

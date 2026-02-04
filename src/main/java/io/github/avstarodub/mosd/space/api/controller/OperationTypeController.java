@@ -1,8 +1,8 @@
 package io.github.avstarodub.mosd.space.api.controller;
 
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
-import io.github.avstarodub.mosd.space.api.dto.OperationTypeCreateRequest;
-import io.github.avstarodub.mosd.space.api.dto.OperationTypeResponse;
+import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeResponse;
 import io.github.avstarodub.mosd.space.api.mapper.OperationTypeApiMapper;
 import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.app.OperationTypeService;

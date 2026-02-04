@@ -1,6 +1,6 @@
 package io.github.avstarodub.mosd.space.app;
 
-import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.processtype.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessTypeApiMapper;
 import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
 import io.github.avstarodub.mosd.space.domain.processtype.ProcessTypeRepository;

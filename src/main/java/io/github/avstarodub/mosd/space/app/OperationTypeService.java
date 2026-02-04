@@ -2,7 +2,7 @@ package io.github.avstarodub.mosd.space.app;
 
 import io.github.avstarodub.mosd.exception.DuplicateResourceException;
 import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
-import io.github.avstarodub.mosd.space.api.dto.OperationTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.mapper.OperationTypeApiMapper;
 import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
 import io.github.avstarodub.mosd.space.domain.operationtype.OperationTypeRepository;
