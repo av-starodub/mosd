@@ -1,5 +1,6 @@
 package io.github.avstarodub.mosd.space.app;
 
+import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.processtype.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessTypeApiMapper;
 import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
@@ -28,7 +29,9 @@ public class ProcessTypeService {
         return repository.findAll();
     }
 
-    public boolean existsByType(String type) {
-        return repository.existsByType(type);
+    public void ensureTypeExists(String type) {
+        if (!repository.existsByType(type)) {
+            throw new ResourceNotFoundException("ProcessType", "type", type);
+        }
     }
 }

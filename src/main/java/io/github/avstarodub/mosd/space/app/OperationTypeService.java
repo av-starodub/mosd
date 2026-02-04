@@ -1,7 +1,6 @@
 package io.github.avstarodub.mosd.space.app;
 
 import io.github.avstarodub.mosd.exception.DuplicateResourceException;
-import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.operationtype.OperationTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.mapper.OperationTypeApiMapper;
 import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
@@ -23,7 +22,7 @@ public class OperationTypeService {
 
     public OperationType create(OperationTypeCreateRequest request) {
         var operationType = OperationTypeApiMapper.toDomain(request);
-        validateProcessTypeExists(operationType.processType());
+        processTypeService.ensureTypeExists(operationType.processType());
         validateUniqueTimeOptionKeys(operationType.defaultTimeOptions());
         validateNoUpdateViaCreate(operationType);
         return repository.save(operationType);
@@ -35,12 +34,6 @@ public class OperationTypeService {
 
     public List<OperationType> getAllByProcessType(String processType) {
         return repository.findAllByProcessType(processType);
-    }
-
-    private void validateProcessTypeExists(String processType) {
-        if (!processTypeService.existsByType(processType)) {
-            throw new ResourceNotFoundException("ProcessType", "type", processType);
-        }
     }
 
     private void validateUniqueTimeOptionKeys(List<TimeOption> options) {

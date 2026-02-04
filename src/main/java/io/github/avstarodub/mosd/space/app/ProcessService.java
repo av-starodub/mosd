@@ -29,7 +29,7 @@ public class ProcessService {
 
     public Process create(ProcessCreateRequest request) {
         var process = ProcessApiMapper.toDomain(request);
-        validateTypeExists(process.type());
+        processTypeService.ensureTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
         validateUniqueTimeOptionKeysInOperations(process.operations());
         validateUniqueRateOptionKeys(process.rateOptions());
@@ -43,7 +43,7 @@ public class ProcessService {
                 .orElseThrow(() -> new ResourceNotFoundException("Process", "processKey", processKey));
 
         var process = ProcessApiMapper.withProcessKey(ProcessApiMapper.toDomain(request), processKey);
-        validateTypeExists(process.type());
+        processTypeService.ensureTypeExists(process.type());
         validateUniqueOperationNames(process.operations());
         validateUniqueTimeOptionKeysInOperations(process.operations());
         validateUniqueRateOptionKeys(process.rateOptions());
@@ -104,12 +104,6 @@ public class ProcessService {
             if (!seen.add(key)) {
                 throw new DuplicateResourceException("TimeOption", "key", key);
             }
-        }
-    }
-
-    private void validateTypeExists(String type) {
-        if (!processTypeService.existsByType(type)) {
-            throw new ResourceNotFoundException("ProcessType", "type", type);
         }
     }
 }
