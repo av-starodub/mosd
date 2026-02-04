@@ -5,6 +5,7 @@ import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessNewVersionRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.app.ProcessService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/api/v1/space/processes")
+@RequestMapping(SpaceApiPaths.Processes.BASE)
 @RequiredArgsConstructor
 public class ProcessController {
 
@@ -37,7 +38,7 @@ public class ProcessController {
         return ProcessApiMapper.toResponse(created);
     }
 
-    @PostMapping("/{processKey}/versions")
+    @PostMapping(SpaceApiPaths.Processes.VERSIONS)
     @ResponseStatus(HttpStatus.CREATED)
     public ProcessResponse createVersion(
             @PathVariable @NotBlank String processKey, @Valid @RequestBody ProcessNewVersionRequest request) {
@@ -45,7 +46,7 @@ public class ProcessController {
         return ProcessApiMapper.toResponse(created);
     }
 
-    @GetMapping("/{processKey}")
+    @GetMapping(SpaceApiPaths.Processes.BY_KEY)
     @ResponseStatus(HttpStatus.OK)
     public ProcessResponse getLatest(@PathVariable @NotBlank String processKey) {
         return service.getLatestByProcessKey(processKey)
@@ -55,12 +56,13 @@ public class ProcessController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<ProcessResponse> getAll(@RequestParam(required = false) String type) {
+    public List<ProcessResponse> getAll(
+            @RequestParam(required = false, name = SpaceApiPaths.Processes.TYPE_PARAM) String type) {
         var processes = type == null ? service.getAllLatest() : service.getAllLatestByType(type);
         return processes.stream().map(ProcessApiMapper::toResponse).toList();
     }
 
-    @GetMapping("/{processKey}/versions")
+    @GetMapping(SpaceApiPaths.Processes.VERSIONS)
     @ResponseStatus(HttpStatus.OK)
     public List<ProcessResponse> getProcessVersions(@PathVariable @NotBlank String processKey) {
         var versions = service.getVersionsByProcessKey(processKey);
@@ -70,7 +72,7 @@ public class ProcessController {
         return versions.stream().map(ProcessApiMapper::toResponse).toList();
     }
 
-    @GetMapping("/{processKey}/versions/{version}")
+    @GetMapping(SpaceApiPaths.Processes.VERSION_BY_NUMBER)
     @ResponseStatus(HttpStatus.OK)
     public ProcessResponse getProcessVersion(
             @PathVariable @NotBlank String processKey, @PathVariable @Positive int version) {

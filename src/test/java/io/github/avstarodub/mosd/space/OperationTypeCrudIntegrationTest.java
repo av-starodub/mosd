@@ -11,6 +11,7 @@ import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.space.api.dto.OperationTypeResponse;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.infra.mongo.OperationTypeDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
@@ -130,8 +131,8 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         @Test
         @DisplayName("Return 404 when operation type not found")
         void notFoundWhenOperationTypeDoesNotExist() throws Exception {
-            mockMvc.perform(get("/api/v1/space/operation-types/{type}", "NONEXISTENT")
-                            .param("processType", "CUT"))
+            var path = SpaceApiPaths.OperationTypes.BASE + SpaceApiPaths.OperationTypes.BY_TYPE;
+            mockMvc.perform(get(path, "NONEXISTENT").param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, "CUT"))
                     .andExpect(status().isNotFound());
         }
     }
@@ -148,8 +149,9 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
     }
 
     private OperationTypeResponse getOperationType(String type, String processType) throws Exception {
+        var path = SpaceApiPaths.OperationTypes.BASE + SpaceApiPaths.OperationTypes.BY_TYPE;
         var result = mockMvc.perform(
-                        get("/api/v1/space/operation-types/{type}", type).param("processType", processType))
+                        get(path, type).param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, processType))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJson(
@@ -157,7 +159,8 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
     }
 
     private List<OperationTypeResponse> getOperationTypesByProcessType(String processType) throws Exception {
-        var result = mockMvc.perform(get("/api/v1/space/operation-types").param("processType", processType))
+        var result = mockMvc.perform(get(SpaceApiPaths.OperationTypes.BASE)
+                        .param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, processType))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJsonList(
@@ -166,7 +169,7 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
 
     private ResultActions postOperationType(String fixture) throws Exception {
         var content = JsonHelper.readFixtureJson(fixture);
-        return mockMvc.perform(post("/api/v1/space/operation-types")
+        return mockMvc.perform(post(SpaceApiPaths.OperationTypes.BASE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content));
     }

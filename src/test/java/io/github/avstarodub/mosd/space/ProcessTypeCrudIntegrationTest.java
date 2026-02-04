@@ -11,6 +11,7 @@ import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessCreateRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessApiMapper;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentMapper;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
@@ -72,7 +73,8 @@ class ProcessTypeCrudIntegrationTest extends AbstractTestcontainersConfiguration
             var expected = JsonHelper.readFixture(
                     objectMapper, JsonHelper.ProcessTypeFixtures.CUT_RESPONSE, ProcessTypeResponse.class);
 
-            var result = mockMvc.perform(get("/api/v1/space/process-types/{type}", expected.type()))
+            var path = SpaceApiPaths.ProcessTypes.BASE + SpaceApiPaths.ProcessTypes.BY_TYPE;
+            var result = mockMvc.perform(get(path, expected.type()))
                     .andExpect(status().isOk())
                     .andReturn();
             var responseJson = result.getResponse().getContentAsString();
@@ -89,7 +91,7 @@ class ProcessTypeCrudIntegrationTest extends AbstractTestcontainersConfiguration
             var expected = JsonHelper.readFixtureList(
                     objectMapper, JsonHelper.ProcessTypeFixtures.LIST_RESPONSE, ProcessTypeResponse[].class);
 
-            var result = mockMvc.perform(get("/api/v1/space/process-types"))
+            var result = mockMvc.perform(get(SpaceApiPaths.ProcessTypes.BASE))
                     .andExpect(status().isOk())
                     .andReturn();
             var responseJson = result.getResponse().getContentAsString();
@@ -145,7 +147,7 @@ class ProcessTypeCrudIntegrationTest extends AbstractTestcontainersConfiguration
 
     private ResultActions postProcessType(String name) throws Exception {
         var content = JsonHelper.readFixtureJson(name);
-        return mockMvc.perform(post("/api/v1/space/process-types")
+        return mockMvc.perform(post(SpaceApiPaths.ProcessTypes.BASE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content));
     }

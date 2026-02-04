@@ -4,6 +4,7 @@ import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.OperationTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.dto.OperationTypeResponse;
 import io.github.avstarodub.mosd.space.api.mapper.OperationTypeApiMapper;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.app.OperationTypeService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/api/v1/space/operation-types")
+@RequestMapping(SpaceApiPaths.OperationTypes.BASE)
 @RequiredArgsConstructor
 public class OperationTypeController {
 
@@ -35,10 +36,11 @@ public class OperationTypeController {
         return OperationTypeApiMapper.toResponse(created);
     }
 
-    @GetMapping("/{type}")
+    @GetMapping(SpaceApiPaths.OperationTypes.BY_TYPE)
     @ResponseStatus(HttpStatus.OK)
     public OperationTypeResponse getByType(
-            @PathVariable @NotBlank String type, @RequestParam @NotBlank String processType) {
+            @PathVariable @NotBlank String type,
+            @RequestParam(name = SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM) @NotBlank String processType) {
         return service.getByTypeAndProcessType(type, processType)
                 .map(OperationTypeApiMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("OperationType", "type", type));
@@ -46,7 +48,8 @@ public class OperationTypeController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<OperationTypeResponse> getAllByProcessType(@RequestParam @NotBlank String processType) {
+    public List<OperationTypeResponse> getAllByProcessType(
+            @RequestParam(name = SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM) @NotBlank String processType) {
         return service.getAllByProcessType(processType).stream()
                 .map(OperationTypeApiMapper::toResponse)
                 .toList();

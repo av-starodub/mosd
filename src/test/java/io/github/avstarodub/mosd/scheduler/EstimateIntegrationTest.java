@@ -11,6 +11,7 @@ import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.scheduler.api.dto.EstimateResponse;
 import io.github.avstarodub.mosd.scheduler.api.dto.ItemEstimate;
 import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionMode;
+import io.github.avstarodub.mosd.scheduler.api.paths.SchedulerApiPaths;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
 import io.github.avstarodub.mosd.space.testdata.ModelGenerator;
@@ -33,8 +34,6 @@ import org.springframework.test.web.servlet.ResultActions;
 @AutoConfigureMockMvc
 @DisplayName("Integration tests: Scheduler Estimate")
 class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
-
-    private static final String ESTIMATE_URL = "/api/v1/scheduler/estimate";
 
     @Autowired
     private MockMvc mockMvc;
@@ -197,8 +196,9 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
     }
 
     private ResultActions postEstimateJson(String request) throws Exception {
-        return mockMvc.perform(
-                post(ESTIMATE_URL).contentType(MediaType.APPLICATION_JSON).content(request));
+        return mockMvc.perform(post(SchedulerApiPaths.ESTIMATE)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request));
     }
 
     private void createProcessType() {

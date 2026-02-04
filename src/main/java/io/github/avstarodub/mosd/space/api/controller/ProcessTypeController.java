@@ -4,6 +4,7 @@ import io.github.avstarodub.mosd.exception.ResourceNotFoundException;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeResponse;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessTypeApiMapper;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.app.ProcessTypeService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/api/v1/space/process-types")
+@RequestMapping(SpaceApiPaths.ProcessTypes.BASE)
 @RequiredArgsConstructor
 public class ProcessTypeController {
 
@@ -34,7 +35,7 @@ public class ProcessTypeController {
         return ProcessTypeApiMapper.toResponse(created);
     }
 
-    @GetMapping("/{type}")
+    @GetMapping(SpaceApiPaths.ProcessTypes.BY_TYPE)
     @ResponseStatus(HttpStatus.OK)
     public ProcessTypeResponse getByType(@PathVariable @NotBlank String type) {
         return service.getByType(type)

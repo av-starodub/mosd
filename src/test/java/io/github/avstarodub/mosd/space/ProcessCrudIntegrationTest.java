@@ -11,6 +11,7 @@ import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
+import io.github.avstarodub.mosd.space.api.paths.SpaceApiPaths;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
@@ -146,7 +147,7 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
         @DisplayName("Reject non-positive version number")
         void rejectNonPositiveVersion(int version) throws Exception {
             var processKey = "PROC-A";
-            var path = "/api/v1/space/processes/{processKey}/versions/{version}";
+            var path = SpaceApiPaths.Processes.BASE + SpaceApiPaths.Processes.VERSION_BY_NUMBER;
 
             mockMvc.perform(get(path, processKey, version)).andExpect(status().isBadRequest());
         }
@@ -176,7 +177,8 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
     private ProcessResponse createVersionFromFixture(String processKey) throws Exception {
         var content = JsonHelper.readFixtureJson(JsonHelper.ProcessFixtures.CREATE_VERSION_REQUEST);
-        var result = mockMvc.perform(post("/api/v1/space/processes/{processKey}/versions", processKey)
+        var path = SpaceApiPaths.Processes.BASE + SpaceApiPaths.Processes.VERSIONS;
+        var result = mockMvc.perform(post(path, processKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(content))
                 .andExpect(status().isCreated())
@@ -185,14 +187,15 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
     }
 
     private ProcessResponse getProcess(String processKey) throws Exception {
-        var result = mockMvc.perform(get("/api/v1/space/processes/{processKey}", processKey))
+        var path = SpaceApiPaths.Processes.BASE + SpaceApiPaths.Processes.BY_KEY;
+        var result = mockMvc.perform(get(path, processKey))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJson(objectMapper, result.getResponse().getContentAsString(), ProcessResponse.class);
     }
 
     private List<ProcessResponse> getProcesses() throws Exception {
-        var result = mockMvc.perform(get("/api/v1/space/processes"))
+        var result = mockMvc.perform(get(SpaceApiPaths.Processes.BASE))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJsonList(
@@ -200,7 +203,7 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
     }
 
     private List<ProcessResponse> getProcessesByType(String type) throws Exception {
-        var result = mockMvc.perform(get("/api/v1/space/processes").param("type", type))
+        var result = mockMvc.perform(get(SpaceApiPaths.Processes.BASE).param(SpaceApiPaths.Processes.TYPE_PARAM, type))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJsonList(
@@ -242,7 +245,7 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
     private org.springframework.test.web.servlet.ResultActions postProcess(String name) throws Exception {
         var content = JsonHelper.readFixtureJson(name);
-        return mockMvc.perform(post("/api/v1/space/processes")
+        return mockMvc.perform(post(SpaceApiPaths.Processes.BASE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(content));
     }
