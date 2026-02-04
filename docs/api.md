@@ -1,373 +1,100 @@
 # API
 
+## Metadata
+- Status: current (MVP)
+- Source of truth: controllers в `src/main/java/io/github/avstarodub/mosd/*/api/controller`
+- Last updated: 2026-02-04
+
 ## Общая информация
-- Базовый путь: `/api/v1`
+- Base path: `/api/v1`
 - Формат: JSON
 - Аутентификация: отсутствует (MVP)
-- Swagger (dev‑профиль): `/swagger-ui.html`
-- OpenAPI JSON (dev‑профиль): `/v3/api-docs`
+- Swagger UI (dev): `/swagger-ui.html`
+- OpenAPI (dev): `/v3/api-docs`
 
-## Формат ошибок
-```json
-{
-  "timestamp": "2026-01-31T10:00:00Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Validation failed",
-  "path": "/api/v1/space/processes",
-  "fieldErrors": [
-    {
-      "field": "operations[0].name",
-      "message": "must not be blank"
-    }
-  ]
-}
-```
+Подробные JSON-схемы запросов/ответов: [dto.md](dto.md).
+
+## Ошибки
+Единый формат ошибки: `ErrorResponse` (см. [dto.md](dto.md)).
+
+Коды:
+- `200` — успешно
+- `201` — создано
+- `400` — ошибка валидации/аргументов
+- `404` — не найдено
+- `409` — конфликт (дубликат/запрещённый update через create)
+- `500` — непредвиденная ошибка
 
 ## Space
 
-### Процессы
-#### Получить актуальные (latest) процессы
-`GET /api/v1/space/processes`
+### Processes
+- `POST /api/v1/space/processes`
+  - Request: `ProcessCreateRequest`
+  - Response: `ProcessResponse`
+- `POST /api/v1/space/processes/{processKey}/versions`
+  - Request: `ProcessNewVersionRequest`
+  - Response: `ProcessResponse`
+- `GET /api/v1/space/processes/{processKey}`
+  - Response: `ProcessResponse` (latest)
+- `GET /api/v1/space/processes?type={type}`
+  - Query:
+    - `type` (optional) — фильтр latest по типу
+  - Response: `List<ProcessResponse>` (latest по `processKey`)
+- `GET /api/v1/space/processes/{processKey}/versions`
+  - Response: `List<ProcessResponse>` (все версии по ключу, по возрастанию версии)
+- `GET /api/v1/space/processes/{processKey}/versions/{version}`
+  - Path:
+    - `version` > 0
+  - Response: `ProcessResponse`
 
-Параметры:
-- `type` — фильтр по типу процесса (process type key)
-- `page` — номер страницы (с 0, по умолчанию 0)
-- `size` — размер страницы (по умолчанию 50)
-- `sortBy` — поле сортировки: `processKey`, `type`, `version`, `createdAt`, `updatedAt`
-- `sortDir` — направление сортировки: `asc` или `desc`
+### Process types
+- `POST /api/v1/space/process-types`
+  - Request: `ProcessTypeCreateRequest`
+  - Response: `ProcessTypeResponse`
+- `GET /api/v1/space/process-types/{type}`
+  - Response: `ProcessTypeResponse`
+- `GET /api/v1/space/process-types`
+  - Response: `List<ProcessTypeResponse>`
 
-Пример:
-```
-GET /api/v1/space/processes?type=CUT&sortBy=processKey&sortDir=asc&page=0&size=20
-```
+### Operation types
+- `POST /api/v1/space/operation-types`
+  - Request: `OperationTypeCreateRequest`
+  - Response: `OperationTypeResponse`
+- `GET /api/v1/space/operation-types/{type}?processType={processType}`
+  - Response: `OperationTypeResponse`
+- `GET /api/v1/space/operation-types?processType={processType}`
+  - Response: `List<OperationTypeResponse>`
 
-Пример ответа:
-```json
-[
-  {
-    "id": "65c0f0b1f0a8e20f3a2a1001",
-    "processKey": "CUT-01",
-    "version": 2,
-    "type": "CUT",
-    "description": "Cutting process v2",
-    "volumeUnit": "m",
-    "handoffMode": "BATCHED",
-    "batchVolume": 50,
-    "operations": [
-      {"name": "op-1", "executionTime": 6}
-    ],
-    "rateOptions": [
-      {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-    ],
-    "createdAt": "2026-01-31T10:00:00Z",
-    "updatedAt": "2026-01-31T10:10:00Z"
-  }
-]
-```
+MVP-ограничение:
+- update/rename для `OperationType` не поддерживается.
 
-#### Получить latest‑версию процесса
-`GET /api/v1/space/processes/{processKey}`
+## Scheduler
 
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a1001",
-  "processKey": "CUT-01",
-  "version": 2,
-  "type": "CUT",
-  "description": "Cutting process v2",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 6}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-  ],
-  "createdAt": "2026-01-31T10:00:00Z",
-  "updatedAt": "2026-01-31T10:10:00Z"
-}
-```
+### Estimate
+- `POST /api/v1/scheduler/estimate`
+  - Request: `EstimateRequest`
+  - Response: `EstimateResponse`
 
-#### Получить все версии процесса
-`GET /api/v1/space/processes/{processKey}/versions`
+Назначение:
+- рассчитывает ожидаемое время выполнения для входного набора items;
+- строит виртуальные очереди;
+- не сохраняет результат и не изменяет реальный план.
 
-Пример ответа:
-```json
-[
-  {
-    "id": "65c0f0b1f0a8e20f3a2a1001",
-    "processKey": "CUT-01",
-    "version": 1,
-    "type": "CUT",
-    "description": "Cutting process v1",
-    "volumeUnit": "m",
-    "handoffMode": "BATCHED",
-    "batchVolume": 50,
-    "operations": [
-      {"name": "op-1", "executionTime": 5}
-    ],
-    "rateOptions": [
-      {"key": "STD", "title": "Standard", "rate": {"units": 3, "minutes": 2}}
-    ],
-    "createdAt": "2026-01-31T09:00:00Z",
-    "updatedAt": "2026-01-31T09:00:00Z"
-  },
-  {
-    "id": "65c0f0b1f0a8e20f3a2a1002",
-    "processKey": "CUT-01",
-    "version": 2,
-    "type": "CUT",
-    "description": "Cutting process v2",
-    "volumeUnit": "m",
-    "handoffMode": "BATCHED",
-    "batchVolume": 50,
-    "operations": [
-      {"name": "op-1", "executionTime": 6}
-    ],
-    "rateOptions": [
-      {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-    ],
-    "createdAt": "2026-01-31T10:00:00Z",
-    "updatedAt": "2026-01-31T10:10:00Z"
-  }
-]
-```
+Правило `batchVolumeOverride`:
+- если `items[].processSelections[].batchVolumeOverride` передан, он имеет приоритет над `process.batchVolume`;
+- если не передан, используется `process.batchVolume`.
 
-#### Получить конкретную версию процесса
-`GET /api/v1/space/processes/{processKey}/versions/{version}`
+Правило выбора скорости (`rateSelection`):
+- `rateSelectionMode = OPTION` -> используется `selectedRateOptionKey`;
+- `rateSelectionMode = OVERRIDE` -> используется `rateOverride { units, minutes, reason }`;
+- оба/ни одного не допускаются (валидация `400`).
 
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a1002",
-  "processKey": "CUT-01",
-  "version": 2,
-  "type": "CUT",
-  "description": "Cutting process v2",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 6}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-  ],
-  "createdAt": "2026-01-31T10:00:00Z",
-  "updatedAt": "2026-01-31T10:10:00Z"
-}
-```
-
-#### Получить все версии всех процессов
-`GET /api/v1/space/processes/versions`
-
-Пример ответа:
-```json
-[
-  {
-    "id": "65c0f0b1f0a8e20f3a2a1001",
-    "processKey": "CUT-01",
-    "version": 1,
-    "type": "CUT",
-    "description": "Cutting process v1",
-    "volumeUnit": "m",
-    "handoffMode": "BATCHED",
-    "batchVolume": 50,
-    "operations": [
-      {"name": "op-1", "executionTime": 5}
-    ],
-    "rateOptions": [
-      {"key": "STD", "title": "Standard", "rate": {"units": 3, "minutes": 2}}
-    ],
-    "createdAt": "2026-01-31T09:00:00Z",
-    "updatedAt": "2026-01-31T09:00:00Z"
-  },
-  {
-    "id": "65c0f0b1f0a8e20f3a2a2001",
-    "processKey": "WELD-01",
-    "version": 1,
-    "type": "WELD",
-    "description": "Welding process v1",
-    "volumeUnit": "pcs",
-    "handoffMode": "FULL_ONLY",
-    "batchVolume": null,
-    "operations": [
-      {"name": "op-1", "executionTime": 8}
-    ],
-    "rateOptions": [
-      {"key": "STD", "title": "Standard", "rate": {"units": 1, "minutes": 2}}
-    ]
-  }
-]
-```
-
-#### Создать процесс (версия 1)
-`POST /api/v1/space/processes`
-
-Пример запроса:
-```json
-{
-  "processKey": "CUT-01",
-  "type": "CUT",
-  "description": "Cutting process v1",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 5},
-    {"name": "op-2", "executionTime": 10}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 3, "minutes": 2}}
-  ]
-}
-```
-
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a1001",
-  "processKey": "CUT-01",
-  "version": 1,
-  "type": "CUT",
-  "description": "Cutting process v1",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 5}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 3, "minutes": 2}}
-  ],
-  "createdAt": "2026-01-31T09:00:00Z",
-  "updatedAt": "2026-01-31T09:00:00Z"
-}
-```
-
-#### Создать новую версию (v+1)
-`POST /api/v1/space/processes/{processKey}/versions`
-
-Пример запроса:
-```json
-{
-  "type": "CUT",
-  "description": "Cutting process v2",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 6}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-  ]
-}
-```
-
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a1002",
-  "processKey": "CUT-01",
-  "version": 2,
-  "type": "CUT",
-  "description": "Cutting process v2",
-  "volumeUnit": "m",
-  "handoffMode": "BATCHED",
-  "batchVolume": 50,
-  "operations": [
-    {"name": "op-1", "executionTime": 6}
-  ],
-  "rateOptions": [
-    {"key": "STD", "title": "Standard", "rate": {"units": 2, "minutes": 1}}
-  ],
-  "createdAt": "2026-01-31T10:00:00Z",
-  "updatedAt": "2026-01-31T10:10:00Z"
-}
-```
-
-#### Удалить процесс (все версии)
-`DELETE /api/v1/space/processes/{processKey}`
-
-### Статусы ответа (Space)
-- `200 OK` — успешное получение данных
-- `201 Created` — ресурс создан
-- `204 No Content` — ресурс удалён
-- `400 Bad Request` — ошибка валидации
-- `404 Not Found` — ресурс не найден
-- `409 Conflict` — нарушение уникальности или ресурс занят
-
-### Ограничения и валидация
-- `processKey` уникален и неизменяем.
-- `type` должен существовать в справочнике типов (`ProcessType.type`).
-- `volumeUnit` не пустой.
-- `operations[].name` не пустой и уникален внутри процесса.
-- `rateOptions[].key` уникальны внутри процесса.
-- `rateOptions` должен содержать минимум один вариант.
-- `executionTime`, `rateOptions[].rate.units`, `rateOptions[].rate.minutes` должны быть > 0.
-- если `handoffMode = BATCHED` → `batchVolume` обязателен и > 0.
-- если `handoffMode = FULL_ONLY` → `batchVolume` должен быть `null`.
+Алгоритм и ограничения: [scheduler-estimate.md](scheduler-estimate.md).
 
 Примечание:
-- `handoffMode = FULL_ONLY` означает, что следующий процесс стартует только после полного завершения текущего.
-- `handoffMode = BATCHED` означает, что результат можно передавать порциями по `batchVolume`.
+- в MVP модуль Scheduler также включает сценарий реального плана;
+- текущий документ описывает только уже реализованный endpoint estimate.
 
-### Типы процессов
-#### Получить список типов
-`GET /api/v1/space/process-types`
-
-Пример ответа:
-```json
-[
-  {
-    "id": "65c0f0b1f0a8e20f3a2a2001",
-    "type": "CUT",
-    "title": "Cutting",
-    "createdAt": "2026-01-31T09:00:00Z",
-    "updatedAt": "2026-01-31T09:00:00Z"
-  }
-]
-```
-
-#### Получить тип по ключу
-`GET /api/v1/space/process-types/{type}`
-
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a2001",
-  "type": "CUT",
-  "title": "Cutting",
-  "createdAt": "2026-01-31T09:00:00Z",
-  "updatedAt": "2026-01-31T09:00:00Z"
-}
-```
-
-#### Создать тип
-`POST /api/v1/space/process-types`
-
-Пример запроса:
-```json
-{
-  "type": "CUT",
-  "title": "Cutting"
-}
-```
-
-Пример ответа:
-```json
-{
-  "id": "65c0f0b1f0a8e20f3a2a2001",
-  "type": "CUT",
-  "title": "Cutting",
-  "createdAt": "2026-01-31T09:00:00Z",
-  "updatedAt": "2026-01-31T09:00:00Z"
-}
-```
-
-#### Удалить тип (если нет процессов)
-`DELETE /api/v1/space/process-types/{type}`
+## Archive (планируется)
+- Контракт хранения расчёта: `CalculationArchiveDocument` (self-contained, один документ).
+- Подробная JSON-схема: [dto.md](dto.md) (раздел Archive).
