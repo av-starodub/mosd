@@ -1,6 +1,6 @@
 package io.github.avstarodub.mosd.scheduler.domain.port;
 
-import io.github.avstarodub.mosd.space.domain.Process;
+import io.github.avstarodub.mosd.space.domain.process.Process;
 import java.util.Optional;
 
 /**

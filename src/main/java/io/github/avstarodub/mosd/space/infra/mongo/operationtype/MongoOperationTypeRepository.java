@@ -1,7 +1,7 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.operationtype;
 
-import io.github.avstarodub.mosd.space.domain.OperationType;
-import io.github.avstarodub.mosd.space.domain.OperationTypeRepository;
+import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
+import io.github.avstarodub.mosd.space.domain.operationtype.OperationTypeRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

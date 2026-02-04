@@ -1,7 +1,7 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.processtype;
 
-import io.github.avstarodub.mosd.space.domain.ProcessType;
-import io.github.avstarodub.mosd.space.domain.ProcessTypeRepository;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessTypeRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

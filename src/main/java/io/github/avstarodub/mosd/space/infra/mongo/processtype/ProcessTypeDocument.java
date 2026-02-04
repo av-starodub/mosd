@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.processtype;
 
 import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;

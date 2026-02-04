@@ -1,10 +1,10 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.process;
 
-import io.github.avstarodub.mosd.space.domain.Operation;
-import io.github.avstarodub.mosd.space.domain.Process;
-import io.github.avstarodub.mosd.space.domain.Rate;
-import io.github.avstarodub.mosd.space.domain.RateOption;
-import io.github.avstarodub.mosd.space.domain.TimeOption;
+import io.github.avstarodub.mosd.space.domain.process.Operation;
+import io.github.avstarodub.mosd.space.domain.process.Process;
+import io.github.avstarodub.mosd.space.domain.process.Rate;
+import io.github.avstarodub.mosd.space.domain.process.RateOption;
+import io.github.avstarodub.mosd.space.domain.process.TimeOption;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 

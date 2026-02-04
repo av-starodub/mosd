@@ -2,8 +2,8 @@ package io.github.avstarodub.mosd.space.app;
 
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.mapper.ProcessTypeApiMapper;
-import io.github.avstarodub.mosd.space.domain.ProcessType;
-import io.github.avstarodub.mosd.space.domain.ProcessTypeRepository;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessTypeRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,8 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.operationtype;
 
-import io.github.avstarodub.mosd.space.domain.OperationType;
-import io.github.avstarodub.mosd.space.domain.TimeOption;
+import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
+import io.github.avstarodub.mosd.space.domain.process.TimeOption;
+import io.github.avstarodub.mosd.space.infra.mongo.process.TimeOptionDocument;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 

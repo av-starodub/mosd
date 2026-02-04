@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.process;
 
 import java.util.List;
 import java.util.Optional;

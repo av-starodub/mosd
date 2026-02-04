@@ -12,8 +12,10 @@ import io.github.avstarodub.mosd.scheduler.api.dto.EstimateResponse;
 import io.github.avstarodub.mosd.scheduler.api.dto.ItemEstimate;
 import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionMode;
 import io.github.avstarodub.mosd.scheduler.api.paths.SchedulerApiPaths;
-import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
-import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
+import io.github.avstarodub.mosd.space.infra.mongo.process.ProcessDocumentMapper;
+import io.github.avstarodub.mosd.space.infra.mongo.process.ProcessDocumentRepository;
+import io.github.avstarodub.mosd.space.infra.mongo.processtype.ProcessTypeDocument;
+import io.github.avstarodub.mosd.space.infra.mongo.processtype.ProcessTypeDocumentRepository;
 import io.github.avstarodub.mosd.space.testdata.ModelGenerator;
 import io.github.avstarodub.mosd.util.JsonHelper;
 import java.util.stream.Stream;
@@ -203,13 +205,12 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
 
     private void createProcessType() {
         var processType = modelGenerator.processType();
-        processTypeRepository.save(new io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocument(
-                null, processType.type(), processType.title(), null, null));
+        processTypeRepository.save(new ProcessTypeDocument(null, processType.type(), processType.title(), null, null));
     }
 
     private void createProcess() {
         var process = modelGenerator.process();
-        processRepository.save(io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentMapper.toDocument(process));
+        processRepository.save(ProcessDocumentMapper.toDocument(process));
     }
 
     private void seedDefaultProcess() {

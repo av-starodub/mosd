@@ -1,4 +1,4 @@
-package io.github.avstarodub.mosd.space.domain;
+package io.github.avstarodub.mosd.space.domain.process;
 
 import java.time.Instant;
 import java.util.List;

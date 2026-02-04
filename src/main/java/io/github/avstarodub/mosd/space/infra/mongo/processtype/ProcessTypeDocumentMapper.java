@@ -1,6 +1,6 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.processtype;
 
-import io.github.avstarodub.mosd.space.domain.ProcessType;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass

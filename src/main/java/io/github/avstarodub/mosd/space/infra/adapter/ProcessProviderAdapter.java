@@ -1,8 +1,8 @@
 package io.github.avstarodub.mosd.space.infra.adapter;
 
 import io.github.avstarodub.mosd.scheduler.domain.port.ProcessProvider;
-import io.github.avstarodub.mosd.space.domain.Process;
-import io.github.avstarodub.mosd.space.domain.ProcessRepository;
+import io.github.avstarodub.mosd.space.domain.process.Process;
+import io.github.avstarodub.mosd.space.domain.process.ProcessRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

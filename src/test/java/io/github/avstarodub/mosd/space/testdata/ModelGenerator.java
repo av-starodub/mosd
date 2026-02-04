@@ -2,13 +2,13 @@ package io.github.avstarodub.mosd.space.testdata;
 
 import static org.instancio.Select.field;
 
-import io.github.avstarodub.mosd.space.domain.Operation;
-import io.github.avstarodub.mosd.space.domain.OperationType;
-import io.github.avstarodub.mosd.space.domain.Process;
-import io.github.avstarodub.mosd.space.domain.ProcessType;
-import io.github.avstarodub.mosd.space.domain.Rate;
-import io.github.avstarodub.mosd.space.domain.RateOption;
-import io.github.avstarodub.mosd.space.domain.TimeOption;
+import io.github.avstarodub.mosd.space.domain.operationtype.OperationType;
+import io.github.avstarodub.mosd.space.domain.process.Operation;
+import io.github.avstarodub.mosd.space.domain.process.Process;
+import io.github.avstarodub.mosd.space.domain.process.Rate;
+import io.github.avstarodub.mosd.space.domain.process.RateOption;
+import io.github.avstarodub.mosd.space.domain.process.TimeOption;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import lombok.Getter;

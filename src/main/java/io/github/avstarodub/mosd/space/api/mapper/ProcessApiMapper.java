@@ -11,11 +11,11 @@ import io.github.avstarodub.mosd.space.api.dto.RateRequest;
 import io.github.avstarodub.mosd.space.api.dto.RateResponse;
 import io.github.avstarodub.mosd.space.api.dto.TimeOptionRequest;
 import io.github.avstarodub.mosd.space.api.dto.TimeOptionResponse;
-import io.github.avstarodub.mosd.space.domain.Operation;
-import io.github.avstarodub.mosd.space.domain.Process;
-import io.github.avstarodub.mosd.space.domain.Rate;
-import io.github.avstarodub.mosd.space.domain.RateOption;
-import io.github.avstarodub.mosd.space.domain.TimeOption;
+import io.github.avstarodub.mosd.space.domain.process.Operation;
+import io.github.avstarodub.mosd.space.domain.process.Process;
+import io.github.avstarodub.mosd.space.domain.process.Rate;
+import io.github.avstarodub.mosd.space.domain.process.RateOption;
+import io.github.avstarodub.mosd.space.domain.process.TimeOption;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 

@@ -1,5 +1,6 @@
-package io.github.avstarodub.mosd.space.infra.mongo;
+package io.github.avstarodub.mosd.space.infra.mongo.operationtype;
 
+import io.github.avstarodub.mosd.space.infra.mongo.process.TimeOptionDocument;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.annotation.CreatedDate;

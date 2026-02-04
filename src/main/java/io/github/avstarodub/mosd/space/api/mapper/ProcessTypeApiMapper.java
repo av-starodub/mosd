@@ -2,7 +2,7 @@ package io.github.avstarodub.mosd.space.api.mapper;
 
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeResponse;
-import io.github.avstarodub.mosd.space.domain.ProcessType;
+import io.github.avstarodub.mosd.space.domain.processtype.ProcessType;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
