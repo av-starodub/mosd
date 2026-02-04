@@ -6,7 +6,6 @@
   "description": "Updated description",
   "volumeUnit": "pcs",
   "batchVolume": 50,
-  "handoffMode": "BATCHED",
   "operations": [
     {
       "operationType": null,

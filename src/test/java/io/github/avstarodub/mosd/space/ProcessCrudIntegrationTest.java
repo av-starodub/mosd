@@ -11,7 +11,6 @@ import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.space.api.dto.ProcessResponse;
 import io.github.avstarodub.mosd.space.api.dto.ProcessTypeCreateRequest;
-import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocument;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
@@ -211,20 +210,11 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
     private void assertStoredProcess(ProcessResponse expected, ProcessResponse created) {
         var stored = repository.findById(created.id()).orElseThrow();
         Assertions.assertThat(stored)
-                .extracting(
-                        ProcessDocument::processKey,
-                        ProcessDocument::version,
-                        ProcessDocument::description,
-                        ProcessDocument::volumeUnit,
-                        ProcessDocument::batchVolume,
-                        ProcessDocument::handoffMode)
-                .containsExactly(
-                        expected.processKey(),
-                        1,
-                        expected.description(),
-                        expected.volumeUnit(),
-                        expected.batchVolume(),
-                        expected.handoffMode());
+                .hasFieldOrPropertyWithValue("processKey", expected.processKey())
+                .hasFieldOrPropertyWithValue("version", 1)
+                .hasFieldOrPropertyWithValue("description", expected.description())
+                .hasFieldOrPropertyWithValue("volumeUnit", expected.volumeUnit())
+                .hasFieldOrPropertyWithValue("batchVolume", expected.batchVolume());
         assertThatJsonEquals(
                 JsonHelper.toJsonTree(objectMapper, stored.operations()),
                 JsonHelper.toJsonTree(objectMapper, expected.operations()));
@@ -238,18 +228,10 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
                 .findTopByProcessKeyOrderByVersionDesc(expected.processKey())
                 .orElseThrow();
         Assertions.assertThat(stored)
-                .extracting(
-                        ProcessDocument::version,
-                        ProcessDocument::description,
-                        ProcessDocument::volumeUnit,
-                        ProcessDocument::batchVolume,
-                        ProcessDocument::handoffMode)
-                .containsExactly(
-                        expected.version(),
-                        expected.description(),
-                        expected.volumeUnit(),
-                        expected.batchVolume(),
-                        expected.handoffMode());
+                .hasFieldOrPropertyWithValue("version", expected.version())
+                .hasFieldOrPropertyWithValue("description", expected.description())
+                .hasFieldOrPropertyWithValue("volumeUnit", expected.volumeUnit())
+                .hasFieldOrPropertyWithValue("batchVolume", expected.batchVolume());
         assertThatJsonEquals(
                 JsonHelper.toJsonTree(objectMapper, stored.operations()),
                 JsonHelper.toJsonTree(objectMapper, expected.operations()));
@@ -275,7 +257,7 @@ class ProcessCrudIntegrationTest extends AbstractTestcontainersConfiguration {
                 arguments(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_RATE_OPTION, 409),
                 arguments(JsonHelper.ProcessFixtures.INVALID_DUPLICATE_TIME_OPTION, 409),
                 arguments(JsonHelper.ProcessFixtures.INVALID_BLANK_OPERATION, 400),
-                arguments(JsonHelper.ProcessFixtures.INVALID_BATCHED_MISSING_VOLUME, 400),
-                arguments(JsonHelper.ProcessFixtures.INVALID_FULL_ONLY_WITH_VOLUME, 400));
+                arguments(JsonHelper.ProcessFixtures.INVALID_MISSING_BATCH_VOLUME, 400),
+                arguments(JsonHelper.ProcessFixtures.INVALID_NON_POSITIVE_BATCH_VOLUME, 400));
     }
 }

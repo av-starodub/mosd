@@ -9,6 +9,7 @@
           "version": 0,
           "volume": 100,
           "volumeUnit": "pcs",
+          "rateSelectionMode": "OPTION",
           "selectedRateOptionKey": "STD",
           "operationSelections": [
             {

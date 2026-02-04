@@ -1,0 +1,28 @@
+{
+  "orderId": "ORD-ERR",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 100,
+          "volumeUnit": "pcs",
+          "rateSelectionMode": "OPTION",
+          "selectedRateOptionKey": "STD",
+          "rateOverride": {
+            "units": 2,
+            "minutes": 9,
+            "reason": "conflicting payload"
+          },
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

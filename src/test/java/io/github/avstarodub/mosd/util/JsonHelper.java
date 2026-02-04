@@ -35,9 +35,9 @@ public class JsonHelper {
 
         public static final String INVALID_BLANK_OPERATION = BASE + "invalid-blank-operation.json";
 
-        public static final String INVALID_BATCHED_MISSING_VOLUME = BASE + "invalid-batched-missing-volume.json";
+        public static final String INVALID_MISSING_BATCH_VOLUME = BASE + "invalid-missing-batch-volume.json";
 
-        public static final String INVALID_FULL_ONLY_WITH_VOLUME = BASE + "invalid-full-only-with-volume.json";
+        public static final String INVALID_NON_POSITIVE_BATCH_VOLUME = BASE + "invalid-non-positive-batch-volume.json";
 
         public static final String INVALID_DUPLICATE_TIME_OPTION = BASE + "invalid-duplicate-time-option.json";
     }
@@ -91,6 +91,11 @@ public class JsonHelper {
 
         public static final String BATCH_OVERRIDE_REQUEST = BASE + "batch-override-request.json";
 
+        public static final String BATCH_OVERRIDE_GREATER_THAN_VOLUME_REQUEST =
+                BASE + "batch-override-greater-than-volume-request.json";
+
+        public static final String RATE_OVERRIDE_REQUEST = BASE + "rate-override-request.json";
+
         public static final String INVALID_OPERATION_REQUEST = BASE + "invalid-operation-request.json";
 
         public static final String INVALID_TIME_OPTION_REQUEST = BASE + "invalid-time-option-request.json";
@@ -102,6 +107,12 @@ public class JsonHelper {
         public static final String INVALID_VERSION_REQUEST = BASE + "invalid-version-request.json";
 
         public static final String INVALID_BATCH_OVERRIDE_REQUEST = BASE + "invalid-batch-override-request.json";
+
+        public static final String INVALID_RATE_SELECTION_BOTH_REQUEST =
+                BASE + "invalid-rate-selection-both-request.json";
+
+        public static final String INVALID_RATE_SELECTION_NEITHER_REQUEST =
+                BASE + "invalid-rate-selection-neither-request.json";
 
         public static final String INVALID_EMPTY_ITEMS_REQUEST = BASE + "invalid-empty-items-request.json";
 

@@ -10,8 +10,10 @@ import io.github.avstarodub.mosd.scheduler.api.dto.ItemRequest;
 import io.github.avstarodub.mosd.scheduler.api.dto.OperationSelectionRequest;
 import io.github.avstarodub.mosd.scheduler.api.dto.ProcessSelectionRequest;
 import io.github.avstarodub.mosd.scheduler.api.dto.QueueEstimate;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateOverrideRequest;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionMode;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionUsed;
 import io.github.avstarodub.mosd.scheduler.domain.port.ProcessProvider;
-import io.github.avstarodub.mosd.space.domain.HandoffMode;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
 import io.github.avstarodub.mosd.space.domain.Rate;
@@ -22,11 +24,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -111,15 +116,14 @@ class EstimateServiceTest {
             var actualResponse = service.estimate(requestForTwoItemsTwoProcesses());
 
             var actualTotalMinutes = actualResponse.totalMinutes();
-            var expectedTotalMinutes = 70;
-            assertThat(actualTotalMinutes).isEqualTo(expectedTotalMinutes);
+            assertThat(actualTotalMinutes).isEqualTo(60);
 
             var actualLaserTimeline = timeline(actualResponse, PROCESS_LASER);
-            var expectedLaserTimeline = List.of(tuple(0, 10), tuple(10, 20), tuple(20, 30), tuple(30, 40));
+            var expectedLaserTimeline = List.of(tuple(0, 10), tuple(10, 16), tuple(16, 26), tuple(26, 32));
             assertThat(actualLaserTimeline).containsExactlyElementsOf(expectedLaserTimeline);
 
             var actualDrillTimeline = timeline(actualResponse, PROCESS_DRILL);
-            var expectedDrillTimeline = List.of(tuple(10, 25), tuple(25, 40), tuple(40, 55), tuple(55, 70));
+            var expectedDrillTimeline = List.of(tuple(10, 25), tuple(25, 35), tuple(35, 50), tuple(50, 60));
             assertThat(actualDrillTimeline).containsExactlyElementsOf(expectedDrillTimeline);
         }
 
@@ -128,18 +132,22 @@ class EstimateServiceTest {
         void perBatchDurationForRemainder() {
             stubProcess(PROCESS_CUT, process(new ProcessSpec(PROCESS_CUT, 1, 10, OP_CUT, TIME_OPTION_CUT, 2, 6, 5)));
             var service = createService();
+
             var request =
                     requestSingleProcess(ORDER_ID, ITEM_1, selection(PROCESS_CUT, 25, null, OP_CUT, TIME_OPTION_CUT));
-
             var actualResponse = service.estimate(request);
 
-            var actualTotalMinutes = actualResponse.totalMinutes();
-            var expectedTotalMinutes = 31;
-            assertThat(actualTotalMinutes).isEqualTo(expectedTotalMinutes);
+            assertThat(actualResponse).hasFieldOrPropertyWithValue("totalMinutes", 27);
 
             var actualBatchDurations = durations(actualResponse, PROCESS_CUT);
-            var expectedBatchDurations = List.of(12, 12, 7);
+            var expectedBatchDurations = List.of(12, 10, 5);
             assertThat(actualBatchDurations).containsExactlyElementsOf(expectedBatchDurations);
+
+            var actualProcessEstimate =
+                    actualResponse.items().getFirst().processes().getFirst();
+            assertThat(actualProcessEstimate)
+                    .hasFieldOrPropertyWithValue("appliedBatchVolume", 10)
+                    .hasFieldOrPropertyWithValue("lastBatchVolume", 5);
         }
 
         @Test
@@ -151,11 +159,31 @@ class EstimateServiceTest {
                     requestSingleProcess(ORDER_ID, ITEM_1, selection(PROCESS_CUT, 20, 25, OP_CUT, TIME_OPTION_CUT));
 
             var actualResponse = service.estimate(request);
-            var actualNumberOfBatches =
-                    actualResponse.items().getFirst().processes().getFirst().numberOfBatches();
-            var expectedNumberOfBatches = 1;
+            var actualProcessEstimate =
+                    actualResponse.items().getFirst().processes().getFirst();
+            assertThat(actualProcessEstimate)
+                    .hasFieldOrPropertyWithValue("batchCount", 1)
+                    .hasFieldOrPropertyWithValue("appliedBatchVolume", 25)
+                    .hasFieldOrPropertyWithValue("lastBatchVolume", 20);
+        }
 
-            assertThat(actualNumberOfBatches).isEqualTo(expectedNumberOfBatches);
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("io.github.avstarodub.mosd.scheduler.app.EstimateServiceTest#rateSelectionCases")
+        @DisplayName("Returns rate selection snapshot for OPTION and OVERRIDE modes")
+        void returnsRateSelectionSnapshot(RateSelectionCase testCase) {
+            stubProcess(PROCESS_CUT, process(new ProcessSpec(PROCESS_CUT, 1, 10, OP_CUT, TIME_OPTION_CUT, 2, 6, 5)));
+            var service = createService();
+
+            var selection = buildRateSelection(testCase);
+            var request = requestSingleProcess(ORDER_ID, ITEM_1, selection);
+            var actualResponse = service.estimate(request);
+
+            var actualTotalMinutes = actualResponse.totalMinutes();
+            assertThat(actualTotalMinutes).isEqualTo(testCase.expectedTotalMinutes());
+
+            var actualRateSelectionUsed =
+                    actualResponse.items().getFirst().processes().getFirst().rateSelectionUsed();
+            assertRateSelectionSnapshot(actualRateSelectionUsed, testCase);
         }
 
         @Test
@@ -175,11 +203,8 @@ class EstimateServiceTest {
             var actualResponses = IntStream.range(0, DETERMINISTIC_RUNS)
                     .mapToObj(index -> service.estimate(request))
                     .toList();
-            var expectedResponses = IntStream.range(0, DETERMINISTIC_RUNS)
-                    .mapToObj(index -> expectedResponse)
-                    .toList();
 
-            assertThat(actualResponses).containsExactlyElementsOf(expectedResponses);
+            assertThat(actualResponses).containsOnly(expectedResponse);
         }
 
         @Test
@@ -297,7 +322,9 @@ class EstimateServiceTest {
                 20,
                 VOLUME_UNIT_PCS,
                 null,
+                RateSelectionMode.OPTION,
                 STANDARD_RATE_OPTION,
+                null,
                 List.of(new OperationSelectionRequest(OP_CUT, TIME_OPTION_CUT)));
         return new EstimateRequest(ORDER_ID, List.of(new ItemRequest(ITEM_1, List.of(process))));
     }
@@ -310,8 +337,60 @@ class EstimateServiceTest {
                 volume,
                 VOLUME_UNIT_PCS,
                 batchOverride,
+                RateSelectionMode.OPTION,
                 STANDARD_RATE_OPTION,
+                null,
                 List.of(new OperationSelectionRequest(operationName, timeOptionKey)));
+    }
+
+    private ProcessSelectionRequest selectionWithRateOverride(
+            String processKey, int volume, String operationName, String timeOptionKey) {
+        return new ProcessSelectionRequest(
+                processKey,
+                null,
+                volume,
+                VOLUME_UNIT_PCS,
+                null,
+                RateSelectionMode.OVERRIDE,
+                null,
+                new RateOverrideRequest(4, 7, "real throughput"),
+                List.of(new OperationSelectionRequest(operationName, timeOptionKey)));
+    }
+
+    private ProcessSelectionRequest buildRateSelection(RateSelectionCase testCase) {
+        if (testCase.mode() == RateSelectionMode.OPTION) {
+            return selection(PROCESS_CUT, testCase.volume(), null, OP_CUT, TIME_OPTION_CUT);
+        }
+        return selectionWithRateOverride(PROCESS_CUT, testCase.volume(), OP_CUT, TIME_OPTION_CUT);
+    }
+
+    private void assertRateSelectionSnapshot(RateSelectionUsed actualRateSelectionUsed, RateSelectionCase testCase) {
+        assertThat(actualRateSelectionUsed).hasFieldOrPropertyWithValue("mode", testCase.mode());
+        if (testCase.mode() == RateSelectionMode.OPTION) {
+            assertOptionSnapshot(actualRateSelectionUsed, testCase);
+        } else {
+            assertOverrideSnapshot(actualRateSelectionUsed, testCase);
+        }
+    }
+
+    private void assertOptionSnapshot(RateSelectionUsed actualRateSelectionUsed, RateSelectionCase testCase) {
+        assertThat(actualRateSelectionUsed).hasFieldOrPropertyWithValue("override", null);
+        var actualOption = actualRateSelectionUsed.option();
+        assertThat(actualOption)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue("key", testCase.expectedOptionKey())
+                .hasFieldOrPropertyWithValue("units", testCase.expectedOptionUnits())
+                .hasFieldOrPropertyWithValue("minutes", testCase.expectedOptionMinutes());
+    }
+
+    private void assertOverrideSnapshot(RateSelectionUsed actualRateSelectionUsed, RateSelectionCase testCase) {
+        assertThat(actualRateSelectionUsed).hasFieldOrPropertyWithValue("option", null);
+        var actualOverride = actualRateSelectionUsed.override();
+        assertThat(actualOverride)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue("units", testCase.expectedOverrideUnits())
+                .hasFieldOrPropertyWithValue("minutes", testCase.expectedOverrideMinutes())
+                .hasFieldOrPropertyWithValue("reason", testCase.expectedOverrideReason());
     }
 
     private Process process(ProcessSpec spec) {
@@ -329,7 +408,6 @@ class EstimateServiceTest {
                 null,
                 VOLUME_UNIT_PCS,
                 spec.batchVolume(),
-                HandoffMode.BATCHED,
                 List.of(operation),
                 List.of(new RateOption(
                         STANDARD_RATE_OPTION,
@@ -348,6 +426,49 @@ class EstimateServiceTest {
             int operationMinutes,
             int rateUnits,
             int rateMinutes) {}
+
+    private record RateSelectionCase(
+            String name,
+            RateSelectionMode mode,
+            int volume,
+            int expectedTotalMinutes,
+            String expectedOptionKey,
+            Integer expectedOptionUnits,
+            Integer expectedOptionMinutes,
+            Integer expectedOverrideUnits,
+            Integer expectedOverrideMinutes,
+            String expectedOverrideReason) {
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static Stream<RateSelectionCase> rateSelectionCases() {
+        return Stream.of(
+                new RateSelectionCase(
+                        "OPTION snapshot",
+                        RateSelectionMode.OPTION,
+                        25,
+                        27,
+                        STANDARD_RATE_OPTION,
+                        6,
+                        5,
+                        null,
+                        null,
+                        null),
+                new RateSelectionCase(
+                        "OVERRIDE snapshot",
+                        RateSelectionMode.OVERRIDE,
+                        20,
+                        44,
+                        null,
+                        null,
+                        null,
+                        4,
+                        7,
+                        "real throughput"));
+    }
 
     private static Tuple tuple(int startMinute, int endMinute) {
         return Tuple.tuple(startMinute, endMinute);

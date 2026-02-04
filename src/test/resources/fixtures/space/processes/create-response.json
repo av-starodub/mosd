@@ -6,7 +6,6 @@
   "description": "Primary cutting",
   "volumeUnit": "pcs",
   "batchVolume": 50,
-  "handoffMode": "BATCHED",
   "operations": [
     {
       "operationType": "OP-A",

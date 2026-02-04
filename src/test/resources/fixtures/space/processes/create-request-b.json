@@ -4,7 +4,6 @@
   "description": "Primary welding",
   "volumeUnit": "pcs",
   "batchVolume": 50,
-  "handoffMode": "BATCHED",
   "operations": [
     {
       "operationType": null,

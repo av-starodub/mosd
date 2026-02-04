@@ -10,6 +10,7 @@ import io.github.avstarodub.mosd.AbstractTestcontainersConfiguration;
 import io.github.avstarodub.mosd.IntegrationTest;
 import io.github.avstarodub.mosd.scheduler.api.dto.EstimateResponse;
 import io.github.avstarodub.mosd.scheduler.api.dto.ItemEstimate;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionMode;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessDocumentRepository;
 import io.github.avstarodub.mosd.space.infra.mongo.ProcessTypeDocumentRepository;
 import io.github.avstarodub.mosd.space.testdata.ModelGenerator;
@@ -102,9 +103,60 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
             seedDefaultProcess();
             var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.BATCH_OVERRIDE_REQUEST);
             // With larger batch volume, fewer batches should be created.
-            var actualNumberOfBatches =
-                    actualResponse.items().getFirst().processes().getFirst().numberOfBatches();
-            assertThat(actualNumberOfBatches).isEqualTo(1);
+            var actualProcessEstimate =
+                    actualResponse.items().getFirst().processes().getFirst();
+            assertThat(actualProcessEstimate)
+                    .hasFieldOrPropertyWithValue("batchCount", 1)
+                    .hasFieldOrPropertyWithValue("appliedBatchVolume", 100)
+                    .hasFieldOrPropertyWithValue("lastBatchVolume", 100);
+
+            var actualRateSelectionUsed = actualProcessEstimate.rateSelectionUsed();
+            assertThat(actualRateSelectionUsed)
+                    .hasFieldOrPropertyWithValue("mode", RateSelectionMode.OPTION)
+                    .hasFieldOrPropertyWithValue("override", null);
+
+            var actualOption = actualRateSelectionUsed.option();
+            assertThat(actualOption)
+                    .isNotNull()
+                    .hasFieldOrPropertyWithValue("key", "STD")
+                    .hasFieldOrPropertyWithValue("units", 3)
+                    .hasFieldOrPropertyWithValue("minutes", 2);
+        }
+
+        @Test
+        @DisplayName("Batch volume override greater than volume keeps one partial batch")
+        void batchVolumeOverrideGreaterThanVolume() throws Exception {
+            seedDefaultProcess();
+            var actualResponse =
+                    postEstimateSuccess(JsonHelper.EstimateFixtures.BATCH_OVERRIDE_GREATER_THAN_VOLUME_REQUEST);
+
+            var actualProcessEstimate =
+                    actualResponse.items().getFirst().processes().getFirst();
+            assertThat(actualProcessEstimate)
+                    .hasFieldOrPropertyWithValue("batchCount", 1)
+                    .hasFieldOrPropertyWithValue("appliedBatchVolume", 25)
+                    .hasFieldOrPropertyWithValue("lastBatchVolume", 20);
+        }
+
+        @Test
+        @DisplayName("Rate override mode applies override rate values")
+        void rateOverrideMode() throws Exception {
+            seedDefaultProcess();
+            var actualResponse = postEstimateSuccess(JsonHelper.EstimateFixtures.RATE_OVERRIDE_REQUEST);
+
+            var actualProcessEstimate =
+                    actualResponse.items().getFirst().processes().getFirst();
+            var actualRateSelectionUsed = actualProcessEstimate.rateSelectionUsed();
+            assertThat(actualRateSelectionUsed)
+                    .hasFieldOrPropertyWithValue("mode", RateSelectionMode.OVERRIDE)
+                    .hasFieldOrPropertyWithValue("option", null);
+
+            var actualOverride = actualRateSelectionUsed.override();
+            assertThat(actualOverride)
+                    .isNotNull()
+                    .hasFieldOrPropertyWithValue("units", 4)
+                    .hasFieldOrPropertyWithValue("minutes", 7)
+                    .hasFieldOrPropertyWithValue("reason", "historical actual throughput");
         }
     }
 
@@ -179,6 +231,8 @@ class EstimateIntegrationTest extends AbstractTestcontainersConfiguration {
                 arguments(JsonHelper.EstimateFixtures.INVALID_RATE_OPTION_REQUEST, 400),
                 arguments(JsonHelper.EstimateFixtures.INVALID_VOLUME_UNIT_REQUEST, 400),
                 arguments(JsonHelper.EstimateFixtures.INVALID_VERSION_REQUEST, 400),
-                arguments(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST, 400));
+                arguments(JsonHelper.EstimateFixtures.INVALID_BATCH_OVERRIDE_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_RATE_SELECTION_BOTH_REQUEST, 400),
+                arguments(JsonHelper.EstimateFixtures.INVALID_RATE_SELECTION_NEITHER_REQUEST, 400));
     }
 }

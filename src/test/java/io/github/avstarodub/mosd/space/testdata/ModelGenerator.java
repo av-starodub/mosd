@@ -2,7 +2,6 @@ package io.github.avstarodub.mosd.space.testdata;
 
 import static org.instancio.Select.field;
 
-import io.github.avstarodub.mosd.space.domain.HandoffMode;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.OperationType;
 import io.github.avstarodub.mosd.space.domain.Process;
@@ -132,7 +131,6 @@ public class ModelGenerator {
                 .set(field(Process::description), "Primary cutting")
                 .set(field(Process::volumeUnit), "pcs")
                 .set(field(Process::batchVolume), 50)
-                .set(field(Process::handoffMode), HandoffMode.BATCHED)
                 .set(field(Process::operations), operations)
                 .set(field(Process::rateOptions), rateOptions)
                 .toModel();

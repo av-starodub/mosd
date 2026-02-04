@@ -1,0 +1,27 @@
+{
+  "orderId": "ORD-005",
+  "items": [
+    {
+      "externalId": "ITEM-1",
+      "processSelections": [
+        {
+          "processKey": "PROC-1",
+          "volume": 20,
+          "volumeUnit": "pcs",
+          "rateSelectionMode": "OVERRIDE",
+          "rateOverride": {
+            "units": 4,
+            "minutes": 7,
+            "reason": "historical actual throughput"
+          },
+          "operationSelections": [
+            {
+              "operationName": "op-1",
+              "selectedTimeOptionKey": "FAST"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

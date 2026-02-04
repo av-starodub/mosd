@@ -4,7 +4,6 @@
   "description": "Duplicate rate option",
   "volumeUnit": "pcs",
   "batchVolume": 50,
-  "handoffMode": "BATCHED",
   "operations": [
     {
       "operationType": null,

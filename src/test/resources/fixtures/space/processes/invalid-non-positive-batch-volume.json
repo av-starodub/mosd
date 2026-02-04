@@ -1,9 +1,9 @@
 {
-  "processKey": "PROC-NO-VOLUME",
+  "processKey": "PROC-BAD-BATCH",
   "type": "CUT",
-  "description": "Missing batch volume",
+  "description": "Non-positive batch volume",
   "volumeUnit": "pcs",
-  "handoffMode": "BATCHED",
+  "batchVolume": 0,
   "operations": [
     {
       "operationType": null,

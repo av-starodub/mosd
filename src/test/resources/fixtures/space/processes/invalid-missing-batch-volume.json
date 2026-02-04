@@ -1,10 +1,8 @@
 {
-  "processKey": "PROC-FULL-ONLY",
+  "processKey": "PROC-NO-VOLUME",
   "type": "CUT",
-  "description": "Full only with batch",
+  "description": "Missing batch volume",
   "volumeUnit": "pcs",
-  "batchVolume": 10,
-  "handoffMode": "FULL_ONLY",
   "operations": [
     {
       "operationType": null,

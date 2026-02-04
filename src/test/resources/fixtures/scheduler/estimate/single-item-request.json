@@ -8,6 +8,7 @@
           "processKey": "PROC-1",
           "volume": 100,
           "volumeUnit": "pcs",
+          "rateSelectionMode": "OPTION",
           "selectedRateOptionKey": "STD",
           "operationSelections": [
             {
