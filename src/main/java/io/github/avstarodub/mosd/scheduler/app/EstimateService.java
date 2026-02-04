@@ -9,10 +9,13 @@ import io.github.avstarodub.mosd.scheduler.api.dto.OperationEstimate;
 import io.github.avstarodub.mosd.scheduler.api.dto.ProcessEstimate;
 import io.github.avstarodub.mosd.scheduler.api.dto.ProcessSelectionRequest;
 import io.github.avstarodub.mosd.scheduler.api.dto.QueueEstimate;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateOverrideRequest;
+import io.github.avstarodub.mosd.scheduler.api.dto.RateSelectionUsed;
 import io.github.avstarodub.mosd.scheduler.api.dto.ScheduledBatch;
 import io.github.avstarodub.mosd.scheduler.domain.port.ProcessProvider;
 import io.github.avstarodub.mosd.space.domain.Operation;
 import io.github.avstarodub.mosd.space.domain.Process;
+import io.github.avstarodub.mosd.space.domain.Rate;
 import io.github.avstarodub.mosd.space.domain.RateOption;
 import io.github.avstarodub.mosd.space.domain.TimeOption;
 import java.util.ArrayList;
@@ -75,9 +78,9 @@ public class EstimateService {
         validatePositiveOptionalValues(selection);
         var process = findProcess(selection);
         validateVolumeUnit(selection, process);
-        var rateOption = findRateOption(process, selection.selectedRateOptionKey());
+        var resolvedRate = resolveRateData(process, selection);
         var operations = validateAndBuildOperations(process, selection);
-        return buildProcessData(selection, process, rateOption, operations);
+        return buildProcessData(selection, process, resolvedRate.rate(), resolvedRate.rateSelectionUsed(), operations);
     }
 
     private Process findProcess(ProcessSelectionRequest selection) {
@@ -117,6 +120,30 @@ public class EstimateService {
                         "RateOption '%s' not found in process '%s'", rateOptionKey, process.processKey())));
     }
 
+    private ResolvedRateData resolveRateData(Process process, ProcessSelectionRequest selection) {
+        return switch (selection.rateSelectionMode()) {
+            case OPTION -> resolveOptionRate(process, selection.selectedRateOptionKey());
+            case OVERRIDE -> resolveOverrideRate(selection.rateOverride());
+        };
+    }
+
+    private ResolvedRateData resolveOptionRate(Process process, String selectedRateOptionKey) {
+        var rateOption = findRateOption(process, selectedRateOptionKey);
+        return new ResolvedRateData(
+                rateOption.rate(),
+                RateSelectionUsed.option(
+                        rateOption.key(),
+                        rateOption.title(),
+                        rateOption.rate().units(),
+                        rateOption.rate().minutes()));
+    }
+
+    private ResolvedRateData resolveOverrideRate(RateOverrideRequest override) {
+        return new ResolvedRateData(
+                new Rate(override.units(), override.minutes()),
+                RateSelectionUsed.override(override.units(), override.minutes(), override.reason()));
+    }
+
     private List<OperationData> validateAndBuildOperations(Process process, ProcessSelectionRequest selection) {
         var operations = new ArrayList<OperationData>();
         for (var opSelection : selection.operationSelections()) {
@@ -145,24 +172,38 @@ public class EstimateService {
     }
 
     private ProcessData buildProcessData(
-            ProcessSelectionRequest selection, Process process, RateOption rateOption, List<OperationData> operations) {
-        int operationsMinutes =
+            ProcessSelectionRequest selection,
+            Process process,
+            Rate rate,
+            RateSelectionUsed rateSelectionUsed,
+            List<OperationData> operations) {
+        int setupMinutes =
                 operations.stream().mapToInt(OperationData::durationMinutes).sum();
-        int batchVolume = determineBatchVolume(selection, process);
-        int numberOfBatches = (int) Math.ceil((double) selection.volume() / batchVolume);
-        var batchDurations = buildBatchDurations(selection.volume(), batchVolume, operationsMinutes, rateOption);
-        int fullBatchRateMinutes = calculateRateMinutes(Math.min(batchVolume, selection.volume()), rateOption);
-        int fullBatchMinutes = operationsMinutes + fullBatchRateMinutes;
+        int appliedBatchVolume = determineBatchVolume(selection, process);
+        int batchCount = (int) Math.ceil((double) selection.volume() / appliedBatchVolume);
+        int lastBatchVolume = calculateLastBatchVolume(selection.volume(), appliedBatchVolume);
+        var productionBatchMinutes = buildProductionBatchDurations(selection.volume(), appliedBatchVolume, rate);
+        int productionMinutes = calculateProductionMinutes(productionBatchMinutes);
 
         return new ProcessData(
                 selection.processKey(),
                 process.version(),
-                numberOfBatches,
-                fullBatchMinutes,
-                operationsMinutes,
-                fullBatchRateMinutes,
-                batchDurations,
+                batchCount,
+                appliedBatchVolume,
+                lastBatchVolume,
+                setupMinutes,
+                productionMinutes,
+                rateSelectionUsed,
+                productionBatchMinutes,
                 operations);
+    }
+
+    private int calculateLastBatchVolume(int totalVolume, int batchVolume) {
+        int remainder = totalVolume % batchVolume;
+        if (remainder == 0) {
+            return batchVolume;
+        }
+        return remainder;
     }
 
     private int determineBatchVolume(ProcessSelectionRequest selection, Process process) {
@@ -175,35 +216,45 @@ public class EstimateService {
         return selection.volume();
     }
 
-    private int calculateRateMinutes(int batchVolume, RateOption rateOption) {
-        var rate = rateOption.rate();
+    private int calculateRateMinutes(int batchVolume, Rate rate) {
         int batches = (int) Math.ceil((double) batchVolume / rate.units());
         return batches * rate.minutes();
     }
 
-    private List<Integer> buildBatchDurations(
-            int totalVolume, int batchVolume, int operationsMinutes, RateOption rateOption) {
+    private List<Integer> buildProductionBatchDurations(int totalVolume, int batchVolume, Rate rate) {
         var durations = new ArrayList<Integer>();
         int processed = 0;
         while (processed < totalVolume) {
             int currentBatchVolume = Math.min(batchVolume, totalVolume - processed);
-            int rateMinutes = calculateRateMinutes(currentBatchVolume, rateOption);
-            durations.add(operationsMinutes + rateMinutes);
+            int rateMinutes = calculateRateMinutes(currentBatchVolume, rate);
+            durations.add(rateMinutes);
             processed += currentBatchVolume;
         }
         return durations;
     }
 
+    private int calculateProductionMinutes(List<Integer> productionBatchMinutes) {
+        return productionBatchMinutes.stream().mapToInt(Integer::intValue).sum();
+    }
+
+    private int durationForSchedule(ProcessData data, int batchNumber) {
+        int productionMinutes = data.productionBatchMinutes().get(batchNumber - 1);
+        if (batchNumber == 1) {
+            return data.setupMinutes() + productionMinutes;
+        }
+        return productionMinutes;
+    }
+
     private void createInitialBatches(SimulationContext context, ItemData itemData) {
         var firstProcess = itemData.processes().getFirst();
-        for (int batchNum = 1; batchNum <= firstProcess.numberOfBatches(); batchNum++) {
+        for (int batchNum = 1; batchNum <= firstProcess.batchCount(); batchNum++) {
             var batch = new PendingBatch(
                     itemData.itemOrder(),
                     itemData.externalId(),
                     batchNum,
                     0,
                     firstProcess.processKey(),
-                    firstProcess.durationForBatch(batchNum),
+                    durationForSchedule(firstProcess, batchNum),
                     0);
             enqueueBatch(context, batch);
         }
@@ -245,7 +296,7 @@ public class EstimateService {
                 event.batchNumber(),
                 nextProcessIndex,
                 nextProcess.processKey(),
-                nextProcess.durationForBatch(event.batchNumber()),
+                durationForSchedule(nextProcess, event.batchNumber()),
                 event.endMinute());
         enqueueBatch(context, nextBatch);
         tryStartNextBatch(context, nextProcess.processKey());
@@ -334,16 +385,17 @@ public class EstimateService {
         for (var op : data.operations()) {
             operations.add(new OperationEstimate(op.operationName(), op.timeOptionKey(), op.durationMinutes()));
         }
-        int estimatedMinutes =
-                data.batchDurations().stream().mapToInt(Integer::intValue).sum();
+        int estimatedMinutes = data.setupMinutes() + data.productionMinutes();
         return new ProcessEstimate(
                 data.processKey(),
                 data.version(),
                 estimatedMinutes,
-                data.numberOfBatches(),
-                data.minutesPerBatch(),
-                data.operationsMinutes(),
-                data.rateMinutes(),
+                data.batchCount(),
+                data.appliedBatchVolume(),
+                data.lastBatchVolume(),
+                data.setupMinutes(),
+                data.productionMinutes(),
+                data.rateSelectionUsed(),
                 operations);
     }
 
@@ -389,16 +441,16 @@ public class EstimateService {
     private record ProcessData(
             String processKey,
             int version,
-            int numberOfBatches,
-            int minutesPerBatch,
-            int operationsMinutes,
-            int rateMinutes,
-            List<Integer> batchDurations,
-            List<OperationData> operations) {
-        int durationForBatch(int batchNumber) {
-            return batchDurations.get(batchNumber - 1);
-        }
-    }
+            int batchCount,
+            int appliedBatchVolume,
+            int lastBatchVolume,
+            int setupMinutes,
+            int productionMinutes,
+            RateSelectionUsed rateSelectionUsed,
+            List<Integer> productionBatchMinutes,
+            List<OperationData> operations) {}
+
+    private record ResolvedRateData(Rate rate, RateSelectionUsed rateSelectionUsed) {}
 
     private record OperationData(String operationName, String timeOptionKey, int durationMinutes) {}
 
