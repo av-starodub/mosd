@@ -11,7 +11,6 @@ public record Process(
         String description,
         String volumeUnit,
         Integer batchVolume,
-        HandoffMode handoffMode,
         List<Operation> operations,
         List<RateOption> rateOptions,
         Instant createdAt,
