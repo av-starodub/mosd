@@ -37,6 +37,8 @@ import org.springframework.test.web.servlet.ResultActions;
 @DisplayName("Integration tests: Space OperationType CRUD")
 class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfiguration {
 
+    private static final String DEFAULT_PROCESS_TYPE = "CUT";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -53,7 +55,7 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
     void setUp() {
         repository.deleteAll();
         processTypeRepository.deleteAll();
-        saveProcessType(JsonHelper.ProcessTypeFixtures.CUT_REQUEST);
+        saveDefaultProcessType();
     }
 
     @Nested
@@ -88,7 +90,7 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
             createOperationType(JsonHelper.OperationTypeFixtures.OP_B_CREATE_REQUEST);
             var expected = JsonHelper.readFixtureList(
                     objectMapper, JsonHelper.OperationTypeFixtures.LIST_RESPONSE, OperationTypeResponse[].class);
-            var actual = getOperationTypesByProcessType("CUT");
+            var actual = getOperationTypesByProcessType();
 
             ResultMatcher.assertResponseListOrdered(actual, expected);
         }
@@ -132,13 +134,15 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
         @DisplayName("Return 404 when operation type not found")
         void notFoundWhenOperationTypeDoesNotExist() throws Exception {
             var path = SpaceApiPaths.OperationTypes.BASE + SpaceApiPaths.OperationTypes.BY_TYPE;
-            mockMvc.perform(get(path, "NONEXISTENT").param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, "CUT"))
+            mockMvc.perform(get(path, "NONEXISTENT")
+                            .param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, DEFAULT_PROCESS_TYPE))
                     .andExpect(status().isNotFound());
         }
     }
 
-    private void saveProcessType(String fixture) {
-        var request = JsonHelper.readFixture(objectMapper, fixture, ProcessTypeCreateRequest.class);
+    private void saveDefaultProcessType() {
+        var request = JsonHelper.readFixture(
+                objectMapper, JsonHelper.ProcessTypeFixtures.CUT_REQUEST, ProcessTypeCreateRequest.class);
         processTypeRepository.save(new ProcessTypeDocument(null, request.type(), request.title(), null, null));
     }
 
@@ -158,9 +162,9 @@ class OperationTypeCrudIntegrationTest extends AbstractTestcontainersConfigurati
                 objectMapper, result.getResponse().getContentAsString(), OperationTypeResponse.class);
     }
 
-    private List<OperationTypeResponse> getOperationTypesByProcessType(String processType) throws Exception {
+    private List<OperationTypeResponse> getOperationTypesByProcessType() throws Exception {
         var result = mockMvc.perform(get(SpaceApiPaths.OperationTypes.BASE)
-                        .param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, processType))
+                        .param(SpaceApiPaths.OperationTypes.PROCESS_TYPE_PARAM, DEFAULT_PROCESS_TYPE))
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonHelper.readJsonList(
