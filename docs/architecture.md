@@ -3,7 +3,7 @@
 ## Metadata
 - Status: current + planned
 - Source of truth: структура пакетов и модули в `src/main/java`
-- Last updated: 2026-02-04
+- Last updated: 2026-02-05
 
 ## Подход
 Проект следует гексагональной архитектуре:
@@ -30,6 +30,15 @@
 Содержит несколько сценариев:
 - estimate (виртуальный расчёт без сохранения) — реализовано;
 - реальный план выполнения — в работе (MVP scope).
+
+#### Scheduler: Plan (принципы реализации)
+- вход в план — self-contained snapshot (без запросов в Space/Archive для доуточнения);
+- single-writer на `planId` (запись в план только через command pipeline);
+- write-команды обрабатываются приоритетными FIFO-очередями:
+  - priority 1: `CHANGE` (изменения существующего плана),
+  - priority 2: `APPEND` (добавление новой нагрузки);
+- read (`GET`) обслуживается отдельно от write-очередей из актуального snapshot;
+- write-события дедуплицируются по `eventId`.
 
 #### Scheduler: Estimate
 Ответственность:

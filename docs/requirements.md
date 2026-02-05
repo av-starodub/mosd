@@ -3,7 +3,7 @@
 ## Metadata
 - Status: current + planned
 - Source of truth: текущая реализация + продуктовый roadmap MVP
-- Last updated: 2026-02-04
+- Last updated: 2026-02-05
 
 ## Реализовано (MVP текущее)
 
@@ -30,6 +30,12 @@
 - архив расчётов и результатов выполнения;
   - расчёты: self-contained документ (input + result + metadata);
 - lifecycle управления сущностями в рамках scheduler.
+
+### Нефункциональные
+- single-writer per `planId` для write-операций планирования;
+- приоритетные FIFO-очереди write-команд (`CHANGE` > `APPEND`);
+- дедупликация write-событий по `eventId`;
+- запрет записи в план в обход command pipeline.
 
 ## После MVP
 

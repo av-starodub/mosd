@@ -3,7 +3,7 @@
 ## Metadata
 - Status: current (MVP)
 - Source of truth: controllers в `src/main/java/io/github/avstarodub/mosd/*/api/controller`
-- Last updated: 2026-02-04
+- Last updated: 2026-02-05
 
 ## Общая информация
 - Base path: `/api/v1`
@@ -94,6 +94,12 @@ MVP-ограничение:
 Примечание:
 - в MVP модуль Scheduler также включает сценарий реального плана;
 - текущий документ описывает только уже реализованный endpoint estimate.
+
+### Plan (в работе, принципы контракта)
+- write-команды (`CHANGE`, `APPEND`) обрабатываются через приоритетные FIFO-очереди;
+- read (`GET`) обслуживается отдельно от write-очередей;
+- для каждого `planId` действует single-writer;
+- write-события требуют `eventId` для дедупликации.
 
 ## Archive (планируется)
 - Контракт хранения расчёта: `CalculationArchiveDocument` (self-contained, один документ).
